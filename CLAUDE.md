@@ -38,6 +38,9 @@ machine. Import from Apple Health export.zip, analyze offline.
   reason is non-obvious (e.g. the two-pass parser design, the dedup window logic).
 - Keep routes thin. Business logic lives in analytics.py, not routes.py.
 - Do not build features outside the Phase 1 scope listed in plan.md.
+- **Never add "Co-Authored-By: Claude" or any AI/model/brand attribution to commit
+  messages.** No mentions of Claude, Anthropic, or any AI tool in commits, code
+  comments, or docs in this repo.
 
 ## Project Structure
 ```
