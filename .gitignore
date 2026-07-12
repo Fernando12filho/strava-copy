@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Personal health data — never commit
+data/
+*.db
+export.zip
+export*.zip
+/*.gpx
+/*.csv
+
+.DS_Store
+Thumbs.db
