@@ -165,10 +165,11 @@ input that wasn't in the original schema.
 - [x] Chart.js vendored to `app/static/chart.js` (v4.5.1, no CDN)
 - [x] Added `user_settings` table (resting_hr, max_hr, birth_year) — not in original schema, needed for TRIMP/CTL/ATL/HR-zone defaults
 - [x] Wired best-effort computation into the import pipeline (`parser.update_best_efforts`)
-- [ ] Smoke-test visually via `python run.py` + PyWebView
+- [x] Smoke-test visually via `python run.py` + PyWebView — native WebView2 window
+      opened and served `/`, `/activities`, `/dashboard`, and static assets (200s)
 
 ### Step 7 — Desktop wrapper
-- [ ] `run.py` — starts Flask in background thread, opens PyWebView window
+- [x] `run.py` — starts Flask in background thread, opens PyWebView window
 
 ---
 
