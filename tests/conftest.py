@@ -32,9 +32,7 @@ def db_session(engine):
 
 @pytest.fixture()
 def app(engine):
-    app = create_app({"TESTING": True})
-    app.engine = engine
-    app.session_factory = sessionmaker(bind=engine)
+    app = create_app({"TESTING": True, "ENGINE": engine})
     yield app
 
 

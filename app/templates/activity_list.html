@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Activities{% endblock %}
+{% block content %}
+<table>
+  {% for activity in activities %}
+  <tr data-activity-id="{{ activity.id }}">
+    <td>{{ activity.activity_type }}</td>
+    <td>{{ activity.start_time }}</td>
+    <td>{{ activity.distance_meters }}</td>
+    <td>{{ activity.duration_seconds }}</td>
+    <td>{{ activity.avg_hr }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

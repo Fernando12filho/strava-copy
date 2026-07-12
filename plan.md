@@ -146,8 +146,8 @@ window powered by PyWebView + Flask.
 - [x] Write `app/analytics.py` until all analytics tests pass
 
 ### Step 5 — Routes (test first)
-- [ ] Write `tests/test_routes.py`
-- [ ] Write `app/routes.py` + `app/__init__.py` until all route tests pass
+- [x] Write `tests/test_routes.py`
+- [x] Write `app/routes.py` + `app/__init__.py` until all route tests pass
 
 ### Step 6 — Templates
 - [ ] `base.html`, `import.html`, `activity_list.html`, `activity_detail.html`, `dashboard.html`

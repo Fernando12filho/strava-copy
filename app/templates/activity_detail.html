@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.activity_type }}{% endblock %}
+{% block content %}
+<div data-activity-id="{{ activity.id }}">
+  <h1>{{ activity.activity_type }}</h1>
+  <p>Distance: {{ activity.distance_meters }}</p>
+  <p>Duration: {{ activity.duration_seconds }}</p>
+  <p>Avg HR: {{ activity.avg_hr }}</p>
+  <p>Max HR: {{ activity.max_hr }}</p>
+  <p>Elevation gain: {{ activity.elevation_gain_meters }}</p>
+</div>
+{% endblock %}
