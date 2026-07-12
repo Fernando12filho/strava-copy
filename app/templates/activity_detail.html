@@ -15,15 +15,15 @@
     </div>
     <div class="card">
       <div class="stat-label">Avg HR</div>
-      <div class="stat-value">{{ activity.avg_hr or "—" }}</div>
+      <div class="stat-value">{{ "%.0f"|format(activity.avg_hr) if activity.avg_hr is not none else "—" }}</div>
     </div>
     <div class="card">
       <div class="stat-label">Max HR</div>
-      <div class="stat-value">{{ activity.max_hr or "—" }}</div>
+      <div class="stat-value">{{ "%.0f"|format(activity.max_hr) if activity.max_hr is not none else "—" }}</div>
     </div>
     <div class="card">
       <div class="stat-label">Elevation Gain</div>
-      <div class="stat-value">{{ activity.elevation_gain_meters or "—" }} m</div>
+      <div class="stat-value">{{ "%.0f"|format(activity.elevation_gain_meters) if activity.elevation_gain_meters is not none else "—" }} m</div>
     </div>
   </div>
 
@@ -76,6 +76,26 @@
 </div>
 
 <script>
+function computePaceSeries(times, distances) {
+  const known = [];
+  for (let i = 0; i < times.length; i++) {
+    if (distances[i] !== null && distances[i] !== undefined) {
+      known.push({ t: times[i], d: distances[i] });
+    }
+  }
+  const labels = [];
+  const paceMinPerKm = [];
+  for (let i = 1; i < known.length; i++) {
+    const dt = known[i].t - known[i - 1].t;
+    const dd = known[i].d - known[i - 1].d;
+    if (dd > 0) {
+      labels.push(known[i].t);
+      paceMinPerKm.push(dt / (dd / 1000) / 60);
+    }
+  }
+  return { labels, paceMinPerKm };
+}
+
 async function loadStream() {
   const response = await fetch("{{ url_for('main.activity_stream', activity_id=activity.id) }}");
   const stream = await response.json();
@@ -88,11 +108,15 @@ async function loadStream() {
     },
   });
 
+  const pace = computePaceSeries(stream.time, stream.distance);
   new Chart(document.getElementById("pace-chart"), {
     type: "line",
     data: {
-      labels: stream.time,
-      datasets: [{ label: "Distance (m)", data: stream.distance, spanGaps: true }],
+      labels: pace.labels,
+      datasets: [{ label: "Pace (min/km)", data: pace.paceMinPerKm, spanGaps: true }],
+    },
+    options: {
+      scales: { y: { reverse: true } },
     },
   });
 
