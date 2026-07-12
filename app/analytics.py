@@ -1,3 +1,4 @@
+from datetime import timedelta
 from math import exp
 
 CTL_DAYS = 42
@@ -137,3 +138,31 @@ def estimate_vo2max(distance_meters, duration_seconds, avg_hr=None, max_hr=None)
     if avg_hr and max_hr:
         vdot *= max_hr / avg_hr
     return vdot
+
+
+def coalesce_stream_metric(times, values):
+    pairs = [(t, v) for t, v in zip(times, values) if v is not None]
+    if not pairs:
+        return [], []
+    ts, vs = zip(*pairs)
+    return list(ts), list(vs)
+
+
+def build_daily_trimp_loads(daily_totals, start_date, end_date):
+    loads = []
+    current = start_date
+    while current <= end_date:
+        loads.append(daily_totals.get(current, 0.0))
+        current += timedelta(days=1)
+    return loads
+
+
+def default_max_hr(birth_year, reference_year):
+    return 220 - (reference_year - birth_year)
+
+
+def value_at_time(times, values, target_time):
+    if not times:
+        return None
+    closest_index = min(range(len(times)), key=lambda i: abs(times[i] - target_time))
+    return values[closest_index]

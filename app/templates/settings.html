@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<form class="import-form" method="post">
+  <label>
+    Resting HR
+    <input type="number" name="resting_hr" value="{{ settings.resting_hr if settings else '' }}" />
+  </label>
+  <label>
+    Max HR
+    <input type="number" name="max_hr" value="{{ settings.max_hr if settings else '' }}" />
+  </label>
+  <label>
+    Birth year (fallback for max HR = 220 - age)
+    <input type="number" name="birth_year" value="{{ settings.birth_year if settings else '' }}" />
+  </label>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

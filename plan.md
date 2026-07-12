@@ -124,6 +124,17 @@ window powered by PyWebView + Flask.
 | muscle_group | TEXT | |
 | category | TEXT | (seeded, unused in Phase 1 UI) |
 
+### user_settings
+| column | type | notes |
+|---|---|---|
+| id | INTEGER PK | single row (id=1 in practice) |
+| resting_hr | INTEGER | nullable, defaults to 60 if unset |
+| max_hr | INTEGER | nullable, falls back to `220 - age` via birth_year if unset |
+| birth_year | INTEGER | nullable, used only for the max_hr fallback |
+
+Added during Step 6: TRIMP/CTL/ATL and HR-zone defaults need a resting/max HR
+input that wasn't in the original schema.
+
 ---
 
 ## TDD Order of Work
@@ -150,7 +161,10 @@ window powered by PyWebView + Flask.
 - [x] Write `app/routes.py` + `app/__init__.py` until all route tests pass
 
 ### Step 6 — Templates
-- [ ] `base.html`, `import.html`, `activity_list.html`, `activity_detail.html`, `dashboard.html`
+- [x] `base.html`, `import.html`, `activity_list.html`, `activity_detail.html`, `dashboard.html`, `settings.html`
+- [x] Chart.js vendored to `app/static/chart.js` (v4.5.1, no CDN)
+- [x] Added `user_settings` table (resting_hr, max_hr, birth_year) — not in original schema, needed for TRIMP/CTL/ATL/HR-zone defaults
+- [x] Wired best-effort computation into the import pipeline (`parser.update_best_efforts`)
 - [ ] Smoke-test visually via `python run.py` + PyWebView
 
 ### Step 7 — Desktop wrapper

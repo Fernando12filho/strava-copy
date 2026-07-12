@@ -161,3 +161,39 @@ def test_vo2max_without_hr_returns_unadjusted_vdot():
     vdot = analytics.estimate_vo2max(distance_meters=5000, duration_seconds=1500)
 
     assert vdot == pytest.approx(38.31, abs=0.01)
+
+
+# --- stream coalescing ---------------------------------------------------
+
+def test_coalesce_stream_metric_drops_none_values():
+    times = [0, 100, 200, 300]
+    values = [None, 5.0, None, 15.0]
+
+    ts, vs = analytics.coalesce_stream_metric(times, values)
+
+    assert ts == [100, 300]
+    assert vs == [5.0, 15.0]
+
+
+# --- daily TRIMP loads / default max HR -----------------------------------
+
+def test_build_daily_trimp_loads_fills_gaps_with_zero():
+    from datetime import date
+
+    daily_totals = {date(2026, 1, 1): 50.0, date(2026, 1, 3): 30.0}
+
+    loads = analytics.build_daily_trimp_loads(daily_totals, date(2026, 1, 1), date(2026, 1, 3))
+
+    assert loads == [50.0, 0.0, 30.0]
+
+
+def test_default_max_hr_uses_220_minus_age_formula():
+    assert analytics.default_max_hr(birth_year=1990, reference_year=2026) == 184
+
+
+def test_value_at_time_returns_nearest_sample():
+    times = [0, 100, 200]
+    values = [10.0, 20.0, 30.0]
+
+    assert analytics.value_at_time(times, values, 90) == 20.0
+    assert analytics.value_at_time(times, values, 40) == 10.0

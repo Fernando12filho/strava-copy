@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models import Activity, ActivityStream, BestEffort, Exercise, HRZone
+from app.models import Activity, ActivityStream, BestEffort, Exercise, HRZone, UserSettings
 
 
 def test_activity_created_with_all_fields(db_session):
@@ -99,3 +99,14 @@ def test_exercise_fields(db_session):
     assert stored.name == "Squat"
     assert stored.muscle_group == "Legs"
     assert stored.category == "Strength"
+
+
+def test_user_settings_fields(db_session):
+    settings = UserSettings(resting_hr=55, max_hr=185, birth_year=1990)
+    db_session.add(settings)
+    db_session.commit()
+
+    stored = db_session.query(UserSettings).one()
+    assert stored.resting_hr == 55
+    assert stored.max_hr == 185
+    assert stored.birth_year == 1990

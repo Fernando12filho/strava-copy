@@ -1,15 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Activities{% endblock %}
 {% block content %}
+<h1>Activities</h1>
+
+<form class="filters" method="get">
+  <select name="type">
+    <option value="">All types</option>
+    {% for t in ["Run", "Walk", "Cycle"] %}
+    <option value="{{ t }}" {% if request.args.get("type") == t %}selected{% endif %}>{{ t }}</option>
+    {% endfor %}
+  </select>
+  <input type="date" name="from" value="{{ request.args.get('from', '') }}" />
+  <input type="date" name="to" value="{{ request.args.get('to', '') }}" />
+  <button type="submit">Filter</button>
+</form>
+
 <table>
-  {% for activity in activities %}
-  <tr data-activity-id="{{ activity.id }}">
-    <td>{{ activity.activity_type }}</td>
-    <td>{{ activity.start_time }}</td>
-    <td>{{ activity.distance_meters }}</td>
-    <td>{{ activity.duration_seconds }}</td>
-    <td>{{ activity.avg_hr }}</td>
-  </tr>
-  {% endfor %}
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Type</th>
+      <th>Distance (km)</th>
+      <th>Duration (min)</th>
+      <th>Avg HR</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for activity in activities %}
+    <tr data-activity-id="{{ activity.id }}">
+      <td><a href="{{ url_for('main.activity_detail', activity_id=activity.id) }}">{{ activity.start_time.strftime("%Y-%m-%d %H:%M") }}</a></td>
+      <td>{{ activity.activity_type }}</td>
+      <td>{{ "%.2f"|format(activity.distance_meters / 1000) }}</td>
+      <td>{{ (activity.duration_seconds / 60) | round | int }}</td>
+      <td>{{ activity.avg_hr or "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
 {% endblock %}

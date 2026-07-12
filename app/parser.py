@@ -7,7 +7,22 @@ from math import atan2, cos, radians, sin, sqrt
 
 import defusedxml.ElementTree as ET
 
-from app.models import Activity, ActivityStream
+from app import analytics
+from app.models import Activity, ActivityStream, BestEffort
+
+STANDARD_DISTANCES = [
+    ("400m", 400.0),
+    ("1/2 Mile", 804.0),
+    ("1K", 1000.0),
+    ("1 Mile", 1609.0),
+    ("2 Miles", 3218.0),
+    ("5K", 5000.0),
+    ("10K", 10000.0),
+    ("15K", 15000.0),
+    ("10 Miles", 16093.0),
+    ("Half Marathon", 21097.0),
+    ("Marathon", 42195.0),
+]
 
 APPLE_DATE_FMT = "%Y-%m-%d %H:%M:%S %z"
 EARTH_RADIUS_M = 6371000
@@ -170,8 +185,47 @@ def _persist_activity(
     db_session.flush()
     if stream_data is not None:
         db_session.add(ActivityStream(activity_id=activity.id, stream_data=stream_data))
-    db_session.commit()
+        db_session.commit()
+        update_best_efforts(db_session, activity, stream_data)
+    else:
+        db_session.commit()
     return True
+
+
+def update_best_efforts(db_session, activity, stream_data):
+    times, distances = analytics.coalesce_stream_metric(stream_data["time"], stream_data["distance"])
+    if len(times) < 2:
+        return
+
+    for label, target_meters in STANDARD_DISTANCES:
+        candidate_seconds = analytics.best_effort(times, distances, target_meters)
+        if candidate_seconds is None:
+            continue
+
+        existing = db_session.query(BestEffort).filter_by(distance_label=label).first()
+        existing_seconds = existing.duration_seconds if existing else None
+        if not analytics.is_new_best_effort(existing_seconds, candidate_seconds):
+            continue
+
+        pace = candidate_seconds / (target_meters / 1000.0)
+        if existing:
+            existing.activity_id = activity.id
+            existing.distance_meters = target_meters
+            existing.duration_seconds = candidate_seconds
+            existing.pace_per_km_seconds = pace
+            existing.achieved_at = activity.start_time
+        else:
+            db_session.add(
+                BestEffort(
+                    distance_label=label,
+                    distance_meters=target_meters,
+                    activity_id=activity.id,
+                    duration_seconds=candidate_seconds,
+                    pace_per_km_seconds=pace,
+                    achieved_at=activity.start_time,
+                )
+            )
+    db_session.commit()
 
 
 def _is_unsafe_zip_entry(name):

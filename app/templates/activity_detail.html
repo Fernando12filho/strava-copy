@@ -2,11 +2,109 @@
 {% block title %}{{ activity.activity_type }}{% endblock %}
 {% block content %}
 <div data-activity-id="{{ activity.id }}">
-  <h1>{{ activity.activity_type }}</h1>
-  <p>Distance: {{ activity.distance_meters }}</p>
-  <p>Duration: {{ activity.duration_seconds }}</p>
-  <p>Avg HR: {{ activity.avg_hr }}</p>
-  <p>Max HR: {{ activity.max_hr }}</p>
-  <p>Elevation gain: {{ activity.elevation_gain_meters }}</p>
+  <h1>{{ activity.activity_type }} — {{ activity.start_time.strftime("%Y-%m-%d %H:%M") }}</h1>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="stat-label">Distance</div>
+      <div class="stat-value">{{ "%.2f"|format(activity.distance_meters / 1000) }} km</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Duration</div>
+      <div class="stat-value">{{ (activity.duration_seconds / 60) | round | int }} min</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Avg HR</div>
+      <div class="stat-value">{{ activity.avg_hr or "—" }}</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Max HR</div>
+      <div class="stat-value">{{ activity.max_hr or "—" }}</div>
+    </div>
+    <div class="card">
+      <div class="stat-label">Elevation Gain</div>
+      <div class="stat-value">{{ activity.elevation_gain_meters or "—" }} m</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="stat-label">Heart Rate</div>
+    <canvas id="hr-chart"></canvas>
+  </div>
+  <div class="card">
+    <div class="stat-label">Pace</div>
+    <canvas id="pace-chart"></canvas>
+  </div>
+  <div class="card">
+    <div class="stat-label">Elevation</div>
+    <canvas id="elevation-chart"></canvas>
+  </div>
+
+  {% if splits %}
+  <div class="card">
+    <div class="stat-label">Splits</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Distance (m)</th>
+          <th>Duration (s)</th>
+          <th>Pace /km</th>
+          <th>Grade-Adjusted Pace /km</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for split in splits %}
+        <tr data-split-index="{{ loop.index0 }}">
+          <td>{{ loop.index }}</td>
+          <td>{{ "%.0f"|format(split.distance_meters) }}</td>
+          <td>{{ "%.0f"|format(split.duration_seconds) }}</td>
+          <td>{{ "%.1f"|format(split.pace_per_km_seconds / 60) }} min/km</td>
+          <td>
+            {% if split.grade_adjusted_pace_seconds %}
+              {{ "%.1f"|format(split.grade_adjusted_pace_seconds / 60) }} min/km
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
 </div>
+
+<script>
+async function loadStream() {
+  const response = await fetch("{{ url_for('main.activity_stream', activity_id=activity.id) }}");
+  const stream = await response.json();
+
+  new Chart(document.getElementById("hr-chart"), {
+    type: "line",
+    data: {
+      labels: stream.time,
+      datasets: [{ label: "HR (bpm)", data: stream.hr, spanGaps: true }],
+    },
+  });
+
+  new Chart(document.getElementById("pace-chart"), {
+    type: "line",
+    data: {
+      labels: stream.time,
+      datasets: [{ label: "Distance (m)", data: stream.distance, spanGaps: true }],
+    },
+  });
+
+  new Chart(document.getElementById("elevation-chart"), {
+    type: "line",
+    data: {
+      labels: stream.time,
+      datasets: [{ label: "Elevation (m)", data: stream.elevation, spanGaps: true }],
+    },
+  });
+}
+
+loadStream();
+</script>
 {% endblock %}

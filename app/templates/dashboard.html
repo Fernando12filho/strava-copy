@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="stat-label">Weekly Distance</div>
+    <div class="stat-value">{{ "%.1f"|format(weekly_distance / 1000) }} km</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Weekly Duration</div>
+    <div class="stat-value">{{ (weekly_duration / 60) | round | int }} min</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Fitness (CTL)</div>
+    <div class="stat-value">{{ "%.1f"|format(current_fitness.ctl) }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Fatigue (ATL)</div>
+    <div class="stat-value">{{ "%.1f"|format(current_fitness.atl) }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Form</div>
+    <div class="stat-value">{{ "%.1f"|format(current_fitness.form) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="stat-label">Monthly Trend (distance, km)</div>
+  <canvas id="monthly-trend-chart"></canvas>
+</div>
+
+<div class="card">
+  <div class="stat-label">Personal Bests</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Distance</th>
+        <th>Time</th>
+        <th>Pace /km</th>
+        <th>Achieved</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for be in best_efforts %}
+      <tr>
+        <td>{{ be.distance_label }}</td>
+        <td>{{ (be.duration_seconds / 60) | round(1) }} min</td>
+        <td>{{ (be.pace_per_km_seconds / 60) | round(1) }} min/km</td>
+        <td>{{ be.achieved_at.strftime("%Y-%m-%d") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+const monthlyTrend = {{ monthly_trend | tojson }};
+new Chart(document.getElementById("monthly-trend-chart"), {
+  type: "bar",
+  data: {
+    labels: monthlyTrend.map((row) => row[0]),
+    datasets: [{
+      label: "Distance (km)",
+      data: monthlyTrend.map((row) => row[1] / 1000),
+    }],
+  },
+});
+</script>
+{% endblock %}

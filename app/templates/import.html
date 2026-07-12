@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Import{% endblock %}
+{% block content %}
+<h1>Import Activities</h1>
+<form class="import-form" id="import-form">
+  <input type="file" name="file" id="import-file" accept=".zip,.gpx,.csv" required />
+  <button type="submit">Import</button>
+</form>
+<div id="import-result"></div>
+
+<script>
+document.getElementById("import-form").addEventListener("submit", async function (event) {
+  event.preventDefault();
+  const fileInput = document.getElementById("import-file");
+  const resultEl = document.getElementById("import-result");
+  const formData = new FormData();
+  formData.append("file", fileInput.files[0]);
+
+  const response = await fetch("{{ url_for('main.import_file') }}", {
+    method: "POST",
+    body: formData,
+  });
+  const data = await response.json();
+
+  if (response.ok) {
+    resultEl.textContent = `Imported ${data.imported}, skipped ${data.skipped} duplicate(s).`;
+  } else {
+    resultEl.textContent = `Error: ${data.error}`;
+  }
+});
+</script>
+{% endblock %}

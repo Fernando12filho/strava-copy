@@ -1,9 +1,20 @@
 <!doctype html>
 <html>
   <head>
+    <meta charset="utf-8" />
     <title>{% block title %}Strava Copy{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>
   </head>
   <body>
-    {% block content %}{% endblock %}
+    <nav>
+      <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('main.activity_list') }}">Activities</a>
+      <a href="{{ url_for('main.import_page') }}">Import</a>
+      <a href="{{ url_for('main.settings_page') }}">Settings</a>
+    </nav>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
   </body>
 </html>

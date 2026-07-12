@@ -74,3 +74,12 @@ class Exercise(Base):
     name = Column(String, nullable=False)
     muscle_group = Column(String, nullable=True)
     category = Column(String, nullable=True)
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True)
+    resting_hr = Column(Integer, nullable=True)
+    max_hr = Column(Integer, nullable=True)
+    birth_year = Column(Integer, nullable=True)

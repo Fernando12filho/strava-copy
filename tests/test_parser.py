@@ -4,7 +4,7 @@ from datetime import datetime
 import pytest
 
 from app import parser
-from app.models import Activity, ActivityStream
+from app.models import Activity, ActivityStream, BestEffort
 
 DUPLICATE_WORKOUT_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 <HealthData>
@@ -134,3 +134,44 @@ def test_zip_missing_export_xml_raises_clean_error(tmp_path, db_session):
 def test_entity_expansion_attempt_is_caught():
     with pytest.raises(Exception):
         parser.parse_apple_health_xml(BILLION_LAUGHS_XML)
+
+
+def test_update_best_efforts_creates_pr_row(db_session, make_activity):
+    activity = make_activity(distance_meters=10000.0, duration_seconds=3000, dedup_key="be-1")
+    times = [i * 300 for i in range(11)]
+    distances = [i * 1000.0 for i in range(11)]
+    stream_data = {"time": times, "hr": [None] * 11, "distance": distances, "elevation": [], "pace": []}
+
+    parser.update_best_efforts(db_session, activity, stream_data)
+
+    five_k = db_session.query(BestEffort).filter_by(distance_label="5K").one()
+    assert five_k.duration_seconds == pytest.approx(1500.0, abs=0.01)
+    assert five_k.activity_id == activity.id
+
+
+def test_update_best_efforts_pr_replaces_old(db_session, make_activity):
+    slow_activity = make_activity(dedup_key="slow")
+    fast_activity = make_activity(dedup_key="fast")
+    slow_stream = {"time": [0, 1800], "hr": [None, None], "distance": [0, 5000.0], "elevation": [], "pace": []}
+    fast_stream = {"time": [0, 1400], "hr": [None, None], "distance": [0, 5000.0], "elevation": [], "pace": []}
+
+    parser.update_best_efforts(db_session, slow_activity, slow_stream)
+    parser.update_best_efforts(db_session, fast_activity, fast_stream)
+
+    five_k = db_session.query(BestEffort).filter_by(distance_label="5K").one()
+    assert five_k.activity_id == fast_activity.id
+    assert five_k.duration_seconds == pytest.approx(1400.0, abs=0.01)
+
+
+def test_update_best_efforts_non_pr_does_not_overwrite(db_session, make_activity):
+    fast_activity = make_activity(dedup_key="fast")
+    slow_activity = make_activity(dedup_key="slow")
+    fast_stream = {"time": [0, 1400], "hr": [None, None], "distance": [0, 5000.0], "elevation": [], "pace": []}
+    slow_stream = {"time": [0, 1800], "hr": [None, None], "distance": [0, 5000.0], "elevation": [], "pace": []}
+
+    parser.update_best_efforts(db_session, fast_activity, fast_stream)
+    parser.update_best_efforts(db_session, slow_activity, slow_stream)
+
+    five_k = db_session.query(BestEffort).filter_by(distance_label="5K").one()
+    assert five_k.activity_id == fast_activity.id
+    assert five_k.duration_seconds == pytest.approx(1400.0, abs=0.01)
