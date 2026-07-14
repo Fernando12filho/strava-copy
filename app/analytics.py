@@ -166,3 +166,116 @@ def value_at_time(times, values, target_time):
         return None
     closest_index = min(range(len(times)), key=lambda i: abs(times[i] - target_time))
     return values[closest_index]
+
+
+RUN_DOT = "#7FB2E8"
+RIDE_DOT = "#8FD1B0"
+GYM_DOT = "#C9A46B"
+OTHER_DOT = "#9C9CA6"
+
+_GYM_TYPES = {
+    "TraditionalStrengthTraining",
+    "FunctionalStrengthTraining",
+    "CoreTraining",
+    "HighIntensityIntervalTraining",
+    "JumpRope",
+}
+
+
+def categorize_activity_type(activity_type):
+    if activity_type == "Run":
+        return {"category": "Run", "label": "Run", "dot": RUN_DOT}
+    if activity_type == "Cycle":
+        return {"category": "Ride", "label": "Ride", "dot": RIDE_DOT}
+    if activity_type in _GYM_TYPES:
+        return {"category": "Gym", "label": "Gym", "dot": GYM_DOT}
+    return {"category": "Other", "label": activity_type, "dot": OTHER_DOT}
+
+
+def format_duration(seconds):
+    total = int(round(seconds))
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{secs:02d}"
+    return f"{minutes}:{secs:02d}"
+
+
+def format_pace(seconds_per_km):
+    if seconds_per_km is None:
+        return None
+    total = int(round(seconds_per_km))
+    minutes, secs = divmod(total, 60)
+    return f"{minutes}:{secs:02d}"
+
+
+_HR_ZONE_DEFS = [
+    ("Zone 1 — Recovery", "Very light · active recovery", 0.50, 0.60, "#3A6B4A"),
+    ("Zone 2 — Aerobic", "Endurance base building", 0.60, 0.70, "#4E7FB0"),
+    ("Zone 3 — Tempo", "Sustained moderate effort", 0.70, 0.80, "#B0A24E"),
+    ("Zone 4 — Threshold", "Hard · lactate threshold", 0.80, 0.90, "#C08A4E"),
+    ("Zone 5 — VO2 max", "Maximal · short intervals", 0.90, 1.00, "#C4F82A"),
+]
+
+
+def hr_zone_bands(max_hr):
+    zones = []
+    for name, desc, lo, hi, color in _HR_ZONE_DEFS:
+        zones.append(
+            {
+                "name": name,
+                "desc": desc,
+                "color": color,
+                "lo": lo,
+                "hi": hi,
+                "pct_range": f"{round(lo * 100)}–{round(hi * 100)}%",
+                "bpm_range": f"{round(lo * max_hr)}–{round(hi * max_hr)} bpm",
+            }
+        )
+    return zones
+
+
+def calendar_levels(daily_loads, start_date, end_date):
+    days = []
+    current = start_date
+    while current <= end_date:
+        days.append({"date": current, "load": daily_loads.get(current, 0.0)})
+        current += timedelta(days=1)
+
+    nonzero = [d["load"] for d in days if d["load"] > 0]
+    max_load = max(nonzero) if nonzero else 0.0
+
+    levels = []
+    for d in days:
+        if d["load"] <= 0 or max_load <= 0:
+            level = 0
+        elif d["load"] <= max_load / 3:
+            level = 1
+        elif d["load"] <= max_load * 2 / 3:
+            level = 2
+        else:
+            level = 3
+        levels.append({"date": d["date"], "level": level})
+    return levels
+
+
+def current_streak(levels):
+    streak = 0
+    for day in reversed(levels):
+        if day["level"] <= 0:
+            break
+        streak += 1
+    return streak
+
+
+def annotate_splits_for_display(splits):
+    paces = [s["pace_per_km_seconds"] for s in splits]
+    fastest = min(paces)
+    slowest = max(paces)
+    spread = slowest - fastest
+
+    annotated = []
+    for split, pace in zip(splits, paces):
+        bar_pct = 100.0 if spread == 0 else 30 + (slowest - pace) / spread * 70
+        annotated.append({**split, "is_fastest": pace == fastest, "bar_pct": bar_pct})
+    return annotated

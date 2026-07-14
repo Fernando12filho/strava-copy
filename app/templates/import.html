@@ -1,32 +1,82 @@
 {% extends "base.html" %}
 {% block title %}Import{% endblock %}
+{% block page_title %}<div class="topbar-title">Import</div>{% endblock %}
+
 {% block content %}
-<h1>Import Activities</h1>
-<form class="import-form" id="import-form">
-  <input type="file" name="file" id="import-file" accept=".zip,.gpx,.csv" required />
-  <button type="submit">Import</button>
-</form>
-<div id="import-result"></div>
+<div class="container import-width">
 
+  <div class="privacy-banner">
+    <span class="status-dot"></span>
+    <div class="privacy-banner-text"><strong>Parsed entirely on this machine.</strong> Files are read locally by the Flask process — nothing is uploaded, and no network request leaves your computer.</div>
+  </div>
+
+  <form id="import-form">
+    <div id="import-idle" class="dropzone">
+      <div class="dropzone-icon">↓</div>
+      <div>
+        <div class="dropzone-title">Drop your Apple Health export</div>
+        <div class="dropzone-sub">Drag <span class="mono" style="color:var(--text-tertiary);">export.zip</span> here, or click to browse</div>
+      </div>
+      <button type="button" id="choose-file-btn" class="btn btn-primary">Choose file</button>
+      <div class="dropzone-footnote">Also accepts .gpx · .csv · .fit</div>
+      <input type="file" id="import-file-input" name="file" accept=".zip,.gpx,.csv,.fit" style="display:none;" />
+    </div>
+  </form>
+
+  <div id="import-processing" class="import-panel" style="display:none;">
+    <div class="import-processing-header">
+      <span class="spinner"></span>
+      <div>
+        <div style="font-family:var(--font-ui); font-weight:600; font-size:17px;">Parsing <span id="processing-filename"></span></div>
+        <div id="processing-stage" class="mono" style="font-size:12px; color:var(--text-secondary); margin-top:3px;"></div>
+      </div>
+    </div>
+    <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+    <div class="progress-meta">
+      <span id="progress-records" class="mono"></span>
+      <span id="progress-pct" class="pct mono"></span>
+    </div>
+    <div class="import-reassurance">Large Apple Health exports can hold years of samples — this can take a minute. You can leave this tab open; parsing continues locally.</div>
+  </div>
+
+  <div id="import-done" class="import-panel" style="display:none; padding:0;">
+    <div class="import-done-header">
+      <span class="done-check">✓</span>
+      <div>
+        <div style="font-family:var(--font-ui); font-weight:600; font-size:18px;">Import complete</div>
+        <div id="done-meta" class="mono" style="font-size:12px; color:var(--text-muted); margin-top:3px;"></div>
+      </div>
+    </div>
+    <div class="import-done-grid">
+      <div class="import-done-cell">
+        <div class="summary-cell-label">Imported</div>
+        <div id="done-imported" class="value accent mono"></div>
+        <div class="caption">activities</div>
+      </div>
+      <div class="import-done-cell">
+        <div class="summary-cell-label">Skipped</div>
+        <div id="done-skipped" class="value mono"></div>
+        <div class="caption">duplicates</div>
+      </div>
+      <div class="import-done-cell">
+        <div class="summary-cell-label">Range</div>
+        <div id="done-range" class="value mono" style="font-size:20px; margin-top:14px; line-height:1.3;"></div>
+      </div>
+    </div>
+    <div class="import-done-actions">
+      <a class="btn btn-primary" href="{{ url_for('main.dashboard') }}">Go to dashboard</a>
+      <button type="button" id="import-another-btn" class="btn btn-secondary">Import another</button>
+    </div>
+  </div>
+
+  <div id="import-error" class="mono" style="display:none; color:var(--negative); margin-top:16px; font-size:13px;"></div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='import.js') }}"></script>
 <script>
-document.getElementById("import-form").addEventListener("submit", async function (event) {
-  event.preventDefault();
-  const fileInput = document.getElementById("import-file");
-  const resultEl = document.getElementById("import-result");
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
-
-  const response = await fetch("{{ url_for('main.import_file') }}", {
-    method: "POST",
-    body: formData,
-  });
-  const data = await response.json();
-
-  if (response.ok) {
-    resultEl.textContent = `Imported ${data.imported}, skipped ${data.skipped} duplicate(s).`;
-  } else {
-    resultEl.textContent = `Error: ${data.error}`;
-  }
-});
+  initImportFlow("{{ url_for('main.import_file') }}");
 </script>
 {% endblock %}

@@ -197,3 +197,123 @@ def test_value_at_time_returns_nearest_sample():
 
     assert analytics.value_at_time(times, values, 90) == 20.0
     assert analytics.value_at_time(times, values, 40) == 10.0
+
+
+# --- activity type categorization ------------------------------------------
+
+def test_categorize_activity_type_run():
+    result = analytics.categorize_activity_type("Run")
+    assert result == {"category": "Run", "label": "Run", "dot": "#7FB2E8"}
+
+
+def test_categorize_activity_type_cycle_maps_to_ride():
+    result = analytics.categorize_activity_type("Cycle")
+    assert result == {"category": "Ride", "label": "Ride", "dot": "#8FD1B0"}
+
+
+def test_categorize_activity_type_strength_cluster_maps_to_gym():
+    for raw in ["TraditionalStrengthTraining", "FunctionalStrengthTraining", "CoreTraining",
+                "HighIntensityIntervalTraining", "JumpRope"]:
+        result = analytics.categorize_activity_type(raw)
+        assert result["category"] == "Gym"
+        assert result["dot"] == "#C9A46B"
+
+
+def test_categorize_activity_type_unmapped_falls_back_to_neutral_dot():
+    result = analytics.categorize_activity_type("Volleyball")
+    assert result == {"category": "Other", "label": "Volleyball", "dot": "#9C9CA6"}
+
+
+# --- formatting --------------------------------------------------------
+
+def test_format_duration_under_an_hour_is_minutes_seconds():
+    assert analytics.format_duration(341) == "5:41"
+
+
+def test_format_duration_over_an_hour_is_hours_minutes_seconds():
+    assert analytics.format_duration(3661) == "1:01:01"
+
+
+def test_format_pace_formats_minutes_seconds():
+    assert analytics.format_pace(274) == "4:34"
+
+
+def test_format_pace_none_input_returns_none():
+    assert analytics.format_pace(None) is None
+
+
+# --- HR zone bands -------------------------------------------------------
+
+def test_hr_zone_bands_computes_five_zones_from_max_hr():
+    zones = analytics.hr_zone_bands(200)
+
+    assert len(zones) == 5
+    assert zones[0]["name"] == "Zone 1 — Recovery"
+    assert zones[0]["pct_range"] == "50–60%"
+    assert zones[0]["bpm_range"] == "100–120 bpm"
+    assert zones[0]["color"] == "#3A6B4A"
+    assert zones[4]["name"] == "Zone 5 — VO2 max"
+    assert zones[4]["bpm_range"] == "180–200 bpm"
+    assert zones[4]["color"] == "#C4F82A"
+
+
+# --- training calendar ---------------------------------------------------
+
+def test_calendar_levels_buckets_loads_into_terciles():
+    from datetime import date
+
+    daily_loads = {
+        date(2026, 1, 1): 0.0,
+        date(2026, 1, 2): 10.0,
+        date(2026, 1, 3): 20.0,
+        date(2026, 1, 4): 30.0,
+    }
+
+    levels = analytics.calendar_levels(daily_loads, date(2026, 1, 1), date(2026, 1, 4))
+
+    assert [d["level"] for d in levels] == [0, 1, 2, 3]
+
+
+def test_calendar_levels_fills_missing_days_as_rest():
+    from datetime import date
+
+    levels = analytics.calendar_levels({date(2026, 1, 2): 10.0}, date(2026, 1, 1), date(2026, 1, 3))
+
+    assert [d["level"] for d in levels] == [0, 3, 0]
+
+
+def test_current_streak_counts_trailing_trained_days():
+    levels = [{"level": lvl} for lvl in [3, 0, 2, 1]]
+    assert analytics.current_streak(levels) == 2
+
+
+def test_current_streak_zero_when_most_recent_day_is_rest():
+    levels = [{"level": lvl} for lvl in [3, 2, 0]]
+    assert analytics.current_streak(levels) == 0
+
+
+# --- split display annotation --------------------------------------------
+
+def test_annotate_splits_marks_fastest_and_scales_bar():
+    splits = [
+        {"pace_per_km_seconds": 300},
+        {"pace_per_km_seconds": 250},
+        {"pace_per_km_seconds": 350},
+    ]
+
+    annotated = analytics.annotate_splits_for_display(splits)
+
+    assert annotated[1]["is_fastest"] is True
+    assert annotated[0]["is_fastest"] is False
+    assert annotated[1]["bar_pct"] == pytest.approx(100.0)
+    assert annotated[2]["bar_pct"] == pytest.approx(30.0)
+    assert annotated[0]["bar_pct"] == pytest.approx(65.0)
+
+
+def test_annotate_splits_handles_uniform_pace_without_division_by_zero():
+    splits = [{"pace_per_km_seconds": 300}, {"pace_per_km_seconds": 300}]
+
+    annotated = analytics.annotate_splits_for_display(splits)
+
+    assert all(s["bar_pct"] == pytest.approx(100.0) for s in annotated)
+    assert all(s["is_fastest"] for s in annotated)

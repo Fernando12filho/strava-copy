@@ -2,19 +2,63 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>{% block title %}Strava Copy{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}DISTRAVA{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
     <script src="{{ url_for('static', filename='chart.js') }}"></script>
   </head>
   <body>
-    <nav>
-      <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('main.activity_list') }}">Activities</a>
-      <a href="{{ url_for('main.import_page') }}">Import</a>
-      <a href="{{ url_for('main.settings_page') }}">Settings</a>
-    </nav>
-    <main>
-      {% block content %}{% endblock %}
-    </main>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-wordmark wordmark">D<span class="accent-letter">I</span>STRAVA</div>
+
+        <nav class="sidebar-nav">
+          <a href="{{ url_for('main.dashboard') }}"
+             class="nav-item {{ 'active' if request.endpoint == 'main.dashboard' }}">
+            <span>Dashboard</span>
+          </a>
+          <a href="{{ url_for('main.activity_list') }}"
+             class="nav-item {{ 'active' if request.endpoint in ('main.activity_list', 'main.activity_detail') }}">
+            <span>Activities</span>
+          </a>
+          <div class="nav-item soon"><span>Routes</span><span class="soon-pill">SOON</span></div>
+          <div class="nav-item soon"><span>Strength</span><span class="soon-pill">SOON</span></div>
+
+          <div class="nav-divider"></div>
+
+          <div class="nav-item soon"><span>Coach</span><span class="soon-pill">SOON</span></div>
+          <div class="nav-item soon"><span>Insights</span><span class="soon-pill">SOON</span></div>
+
+          <div class="nav-divider"></div>
+
+          <a href="{{ url_for('main.import_page') }}"
+             class="nav-item {{ 'active' if request.endpoint == 'main.import_page' }}">
+            <span>Import</span>
+          </a>
+          <a href="{{ url_for('main.settings_page') }}"
+             class="nav-item {{ 'active' if request.endpoint == 'main.settings_page' }}">
+            <span>Settings</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-dot"></span>
+          <span class="sidebar-footer-text">Local-only · nothing<br />leaves this machine</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>{% block topbar_left %}<div class="topbar-title">{% block page_title %}{% endblock %}</div>{% endblock %}</div>
+          <div class="topbar-right">{% block topbar_right %}{% endblock %}</div>
+        </header>
+
+        <div class="scroll-area {% block scroll_area_class %}{% endblock %}">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
   </body>
 </html>

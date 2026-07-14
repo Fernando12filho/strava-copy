@@ -110,3 +110,29 @@ def test_user_settings_fields(db_session):
     assert stored.resting_hr == 55
     assert stored.max_hr == 185
     assert stored.birth_year == 1990
+
+
+def test_activity_title_and_source_device_optional_fields(db_session, make_activity):
+    activity = make_activity(title="Morning tempo along the river", source_device="Garmin Forerunner 265")
+
+    stored = db_session.query(Activity).one()
+    assert stored.title == "Morning tempo along the river"
+    assert stored.source_device == "Garmin Forerunner 265"
+
+
+def test_activity_title_and_source_device_default_to_none(db_session, make_activity):
+    make_activity()
+
+    stored = db_session.query(Activity).one()
+    assert stored.title is None
+    assert stored.source_device is None
+
+
+def test_user_settings_weight_and_units_fields(db_session):
+    settings = UserSettings(resting_hr=55, max_hr=185, birth_year=1990, weight_kg=72.0, units="metric")
+    db_session.add(settings)
+    db_session.commit()
+
+    stored = db_session.query(UserSettings).one()
+    assert stored.weight_kg == 72.0
+    assert stored.units == "metric"

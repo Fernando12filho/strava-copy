@@ -1,20 +1,104 @@
 {% extends "base.html" %}
 {% block title %}Settings{% endblock %}
+{% block page_title %}<div class="topbar-title">Settings</div>{% endblock %}
+{% block topbar_right %}<span id="save-status" class="save-status">All changes saved</span>{% endblock %}
+
 {% block content %}
-<h1>Settings</h1>
-<form class="import-form" method="post">
-  <label>
-    Resting HR
-    <input type="number" name="resting_hr" value="{{ settings.resting_hr if settings else '' }}" />
-  </label>
-  <label>
-    Max HR
-    <input type="number" name="max_hr" value="{{ settings.max_hr if settings else '' }}" />
-  </label>
-  <label>
-    Birth year (fallback for max HR = 220 - age)
-    <input type="number" name="birth_year" value="{{ settings.birth_year if settings else '' }}" />
-  </label>
-  <button type="submit">Save</button>
-</form>
+<div class="container narrow">
+  <form id="settings-form" method="post" action="{{ url_for('main.settings_page') }}" class="settings-stack">
+
+    <section class="card">
+      <div class="card-header"><div><div class="title">Profile</div><div class="card-subtitle">Used to compute heart-rate zones and training load</div></div></div>
+      <div class="field-rows">
+        <div class="field-row">
+          <div><div class="field-label">Max heart rate</div><div class="field-help">bpm · overrides 220−age estimate</div></div>
+          <input class="fld" type="number" name="max_hr" id="max-hr-input" value="{{ settings.max_hr if settings and settings.max_hr else '' }}" placeholder="{{ resolved_max_hr }}" />
+        </div>
+        <div class="field-row">
+          <div><div class="field-label">Resting heart rate</div><div class="field-help">bpm</div></div>
+          <input class="fld" type="number" name="resting_hr" value="{{ settings.resting_hr if settings and settings.resting_hr else '' }}" />
+        </div>
+        <div class="field-row">
+          <div><div class="field-label">Weight</div><div class="field-help">kg</div></div>
+          <input class="fld" type="number" step="0.1" name="weight_kg" value="{{ settings.weight_kg if settings and settings.weight_kg else '' }}" />
+        </div>
+        <div class="field-row">
+          <div><div class="field-label">Birth year</div><div class="field-help">for age-based estimates</div></div>
+          <input class="fld wide" type="number" name="birth_year" value="{{ settings.birth_year if settings and settings.birth_year else '' }}" />
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div class="title">Heart rate zones</div></div>
+      <div class="hr-zones-list" id="hr-zones-list">
+        {% for z in zones %}
+        <div class="hr-zone-chip" data-lo="{{ z.lo }}" data-hi="{{ z.hi }}">
+          <div class="hr-zone-color" style="background:{{ z.color }};"></div>
+          <div>
+            <div class="hr-zone-name">{{ z.name }}</div>
+            <div class="hr-zone-desc">{{ z.desc }}</div>
+          </div>
+          <div class="hr-zone-range">
+            <div class="hr-zone-bpm">{{ z.bpm_range }}</div>
+            <div class="hr-zone-pct">{{ z.pct_range }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div class="title">Units</div></div>
+      <div style="padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="field-label">Measurement system</div>
+        <input type="hidden" name="units" id="units-input" value="{{ settings.units if settings and settings.units else 'metric' }}" />
+        <div class="segmented" id="units-segmented">
+          <button type="button" class="segmented-btn {{ 'active' if not settings or not settings.units or settings.units == 'metric' }}" data-units="metric">Metric · km</button>
+          <button type="button" class="segmented-btn {{ 'active' if settings and settings.units == 'imperial' }}" data-units="imperial">Imperial · mi</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header"><div class="title">Data</div></div>
+      <div class="field-rows">
+        <div class="field-row">
+          <div><div class="field-label">Database location</div><div class="field-help">{{ db_path }}{{ ' · %.0f MB'|format(db_size_mb) if db_size_mb else '' }}</div></div>
+          <span class="btn btn-secondary is-disabled" title="Coming soon">Reveal</span>
+        </div>
+        <div class="field-row">
+          <div><div class="field-label">Export data</div><div class="field-help">Download all activities as .csv + .gpx</div></div>
+          <span class="btn btn-secondary is-disabled" title="Coming soon">Export</span>
+        </div>
+        <div class="field-row">
+          <div><div class="field-label" style="color:var(--negative);">Wipe all data</div><div class="field-help">Permanently delete the local database</div></div>
+          <button type="submit" form="wipe-form" class="btn btn-danger">Wipe…</button>
+        </div>
+      </div>
+    </section>
+
+  </form>
+
+  <form id="wipe-form" method="post" action="{{ url_for('main.settings_wipe') }}"></form>
+
+  <section class="card about-row">
+    <div class="about-left">
+      <div class="wordmark" style="font-size:20px;">D<span class="accent-letter">I</span>STRAVA</div>
+      <span class="topbar-meta">v1.0.0</span>
+    </div>
+    <div class="about-right">
+      <span class="status-dot"></span>
+      <span class="topbar-meta">Your data never leaves this machine</span>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='settings.js') }}"></script>
+<script>
+  initSettingsForm("{{ url_for('main.settings_page') }}");
+</script>
 {% endblock %}

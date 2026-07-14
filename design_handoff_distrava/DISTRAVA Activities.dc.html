@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0B0B0F; }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: rgba(196,248,42,0.25); color: #fff; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #26262E; border-radius: 10px; border: 2px solid #0B0B0F; }
+  .nav-item:hover { background:#15151B; }
+  .act-row:hover { background:#1A1A21; }
+  .sort-h { cursor:pointer; user-select:none; }
+  .sort-h:hover { color:#C7C7CE; }
+</style>
+</helmet>
+<div style="display:flex; height:100vh; background:#0B0B0F; color:#ECECEF; font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden;">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside style="width:248px; flex:none; background:#0D0D12; border-right:1px solid #1C1C22; display:flex; flex-direction:column; padding:22px 14px;">
+    <div style="padding:8px 12px 22px;"><div style="font-family:'Inter'; font-weight:800; font-size:22px; letter-spacing:-0.03em; line-height:1;">D<span style="color:#C4F82A;">I</span>STRAVA</div></div>
+    <nav style="display:flex; flex-direction:column; gap:2px;">
+      <a href="DISTRAVA%20Dashboard.dc.html" class="nav-item" style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; cursor:pointer;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Dashboard</span></a>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; background:#17171D; position:relative; cursor:pointer;"><span style="position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:2px; background:#C4F82A;"></span><span style="font-weight:600; font-size:14px; color:#ECECEF;">Activities</span></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Routes</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Strength</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="height:1px; background:#1C1C22; margin:12px 14px;"></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Coach</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Insights</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="height:1px; background:#1C1C22; margin:12px 14px;"></div>
+      <div class="nav-item" style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; cursor:pointer;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Import</span></div>
+      <div class="nav-item" style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; cursor:pointer;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Settings</span></div>
+    </nav>
+    <div style="margin-top:auto; padding:14px; display:flex; align-items:center; gap:9px;"><span style="width:7px; height:7px; border-radius:50%; background:#C4F82A; flex:none; box-shadow:0 0 8px rgba(196,248,42,0.6);"></span><span style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; line-height:1.4;">Local-only · nothing<br>leaves this machine</span></div>
+  </aside>
+
+  <!-- ===== CONTENT ===== -->
+  <main style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+    <header style="height:64px; flex:none; border-bottom:1px solid #1C1C22; display:flex; align-items:center; justify-content:space-between; padding:0 32px;">
+      <div style="display:flex; align-items:baseline; gap:12px;"><div style="font-family:'Inter'; font-weight:600; font-size:17px; letter-spacing:-0.01em;">Activities</div><span style="font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68;">{{ totalLabel }}</span></div>
+      <button style="font-family:'Inter'; font-weight:600; font-size:13px; color:#0B0B0F; background:#C4F82A; border:none; border-radius:8px; padding:9px 16px; cursor:pointer;">Import</button>
+    </header>
+
+    <div style="flex:1; overflow-y:auto; padding:24px 32px 40px;">
+      <div style="max-width:1160px; margin:0 auto;">
+
+        <!-- FILTER BAR -->
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px; flex-wrap:wrap;">
+          <div style="display:flex; gap:6px; background:#131319; border:1px solid #22222A; border-radius:10px; padding:4px;">
+            <sc-for list="{{ typeFilters }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.onClick }}" style="font-family:'Inter'; font-weight:500; font-size:13px; border:none; border-radius:7px; padding:7px 14px; cursor:pointer; background:{{ t.bg }}; color:{{ t.color }};">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">RANGE</span>
+            <select onChange="{{ onRange }}" value="{{ range }}" style="font-family:'Inter'; font-size:13px; color:#ECECEF; background:#131319; border:1px solid #22222A; border-radius:8px; padding:8px 12px; cursor:pointer;">
+              <option value="all">All time</option>
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 3 months</option>
+              <option value="year">This year</option>
+            </select>
+          </div>
+          <div style="margin-left:auto; font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68;">{{ resultLabel }}</div>
+        </div>
+
+        <!-- TABLE -->
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; overflow:hidden;">
+          <div style="display:grid; grid-template-columns:110px 90px 1fr 100px 100px 96px 80px; padding:13px 22px; border-bottom:1px solid #26262E; font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68; letter-spacing:0.08em; text-transform:uppercase;">
+            <span class="sort-h" onClick="{{ sortDate }}">Date {{ arrowDate }}</span>
+            <span>Type</span>
+            <span class="sort-h" onClick="{{ sortTitle }}">Title {{ arrowTitle }}</span>
+            <span class="sort-h" onClick="{{ sortDist }}" style="text-align:right;">{{ arrowDist }} Distance</span>
+            <span class="sort-h" onClick="{{ sortDur }}" style="text-align:right;">{{ arrowDur }} Duration</span>
+            <span class="sort-h" onClick="{{ sortPace }}" style="text-align:right;">{{ arrowPace }} Pace</span>
+            <span class="sort-h" onClick="{{ sortHr }}" style="text-align:right;">{{ arrowHr }} HR</span>
+          </div>
+          <sc-for list="{{ pageRows }}" as="a" hint-placeholder-count="10">
+            <a href="DISTRAVA%20Activity%20Detail.dc.html" class="act-row" style="display:grid; grid-template-columns:110px 90px 1fr 100px 100px 96px 80px; align-items:center; padding:13px 22px; border-bottom:1px solid #17171D; cursor:pointer;">
+              <span style="font-family:'JetBrains Mono'; font-size:13px; color:#9C9CA6;">{{ a.date }}</span>
+              <span><span style="display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono'; font-size:11px; color:#C7C7CE; background:#1E1E26; border:1px solid #2C2C36; border-radius:20px; padding:3px 9px;"><span style="width:6px; height:6px; border-radius:50%; background:{{ a.dot }};"></span>{{ a.type }}</span></span>
+              <span style="font-size:14px; color:#ECECEF; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:16px;">{{ a.title }}</span>
+              <span style="font-family:'JetBrains Mono'; font-size:13px; text-align:right; font-variant-numeric:tabular-nums;">{{ a.dist }}</span>
+              <span style="font-family:'JetBrains Mono'; font-size:13px; text-align:right; color:#C7C7CE; font-variant-numeric:tabular-nums;">{{ a.dur }}</span>
+              <span style="font-family:'JetBrains Mono'; font-size:13px; text-align:right; color:#9C9CA6; font-variant-numeric:tabular-nums;">{{ a.pace }}</span>
+              <span style="font-family:'JetBrains Mono'; font-size:13px; text-align:right; color:#9C9CA6; font-variant-numeric:tabular-nums;">{{ a.hr }}</span>
+            </a>
+          </sc-for>
+          <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:48px; text-align:center; font-family:'Inter'; font-size:14px; color:#5E5E68;">No activities match these filters.</div>
+          </sc-if>
+        </div>
+
+        <!-- PAGINATION -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:18px;">
+          <div style="font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68;">{{ rangeLabel }}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button onClick="{{ prev }}" style="font-family:'Inter'; font-size:13px; color:{{ prevColor }}; background:transparent; border:1px solid #22222A; border-radius:8px; padding:7px 14px; cursor:pointer;">← Prev</button>
+            <span style="font-family:'JetBrains Mono'; font-size:12px; color:#9C9CA6; padding:0 4px;">{{ pageLabel }}</span>
+            <button onClick="{{ next }}" style="font-family:'Inter'; font-size:13px; color:{{ nextColor }}; background:transparent; border:1px solid #22222A; border-radius:8px; padding:7px 14px; cursor:pointer;">Next →</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820}}">
+class Component extends DCLogic {
+  state = { type: "All", range: "all", sortKey: "date", sortDir: "desc", page: 0 };
+
+  _data() {
+    if (this._cache) return this._cache;
+    const dot = { Run: "#7FB2E8", Ride: "#8FD1B0", Gym: "#C9A46B" };
+    const titles = {
+      Run: ["Morning tempo along the river","Easy recovery loop","Long run — northern trails","Interval session 8×400","Threshold run","Progression run home","Hill repeats","Fartlek in the park","Sunday long run","Lunch shakeout"],
+      Ride: ["Commute + hill repeats","Weekend endurance ride","Zwift FTP test","Coastal loop"],
+      Gym: ["Lower body — squat 5×5","Upper body push","Deadlift + accessories","Full body circuit","Core & mobility"],
+    };
+    const rows = [];
+    let d = new Date("2026-07-11T06:42:00");
+    const rand = (s)=> { let x=Math.sin(s)*10000; return x-Math.floor(x); };
+    for (let i=0;i<27;i++) {
+      const r = rand(i+1);
+      const type = r < 0.62 ? "Run" : r < 0.82 ? "Ride" : "Gym";
+      const tl = titles[type][Math.floor(rand(i+7)*titles[type].length)];
+      const iso = new Date(d);
+      let distKm=null, durSec, paceSec=null, hr;
+      if (type==="Run") { distKm = 5 + rand(i+3)*17; durSec = distKm*(255+rand(i+5)*90); paceSec = durSec/distKm; hr = 140+Math.round(rand(i+9)*32); }
+      else if (type==="Ride") { distKm = 15 + rand(i+3)*35; durSec = distKm*(120+rand(i+5)*40); hr = 118+Math.round(rand(i+9)*30); }
+      else { durSec = 2400+Math.round(rand(i+5)*2400); hr = 108+Math.round(rand(i+9)*26); }
+      rows.push({ id:i, iso, type, dot:dot[type], title:tl, distKm, durSec, paceSec, hr });
+      d = new Date(d.getTime() - (1+Math.floor(rand(i+11)*3))*86400000);
+    }
+    this._cache = rows;
+    return rows;
+  }
+  _fmtDate(dt){ return dt.toLocaleString("en-US",{month:"short",day:"2-digit"}); }
+  _fmtDur(s){ const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=Math.round(s%60); return h? h+":"+String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0") : m+":"+String(ss).padStart(2,"0"); }
+  _fmtPace(s){ if(s==null) return "—"; const m=Math.floor(s/60),ss=Math.round(s%60); return m+":"+String(ss).padStart(2,"0"); }
+
+  _sortToggle(key){ this.setState(s=> s.sortKey===key ? {sortDir:s.sortDir==="asc"?"desc":"asc",page:0} : {sortKey:key,sortDir:key==="title"?"asc":"desc",page:0}); }
+
+  renderVals(){
+    const S=this.state, all=this._data(), now=new Date("2026-07-13T00:00:00");
+    let list = all.filter(a=> S.type==="All"||a.type===S.type);
+    if (S.range!=="all") list = list.filter(a=>{
+      if(S.range==="year") return a.iso.getFullYear()===2026;
+      const days=(now-a.iso)/86400000; return days<=Number(S.range);
+    });
+    const dir = S.sortDir==="asc"?1:-1;
+    const key = S.sortKey;
+    list = [...list].sort((x,y)=>{
+      let a,b;
+      if(key==="date"){a=x.iso;b=y.iso;}
+      else if(key==="title"){a=x.title.toLowerCase();b=y.title.toLowerCase();}
+      else if(key==="dist"){a=x.distKm??-1;b=y.distKm??-1;}
+      else if(key==="dur"){a=x.durSec;b=y.durSec;}
+      else if(key==="pace"){a=x.paceSec??1e9;b=y.paceSec??1e9;}
+      else {a=x.hr;b=y.hr;}
+      return a<b?-1*dir:a>b?1*dir:0;
+    });
+    const per=10, pages=Math.max(1,Math.ceil(list.length/per)), page=Math.min(S.page,pages-1);
+    const slice=list.slice(page*per,page*per+per).map(a=>({
+      date:this._fmtDate(a.iso), type:a.type, dot:a.dot, title:a.title,
+      dist:a.distKm!=null?a.distKm.toFixed(1)+" km":"—",
+      dur:this._fmtDur(a.durSec), pace:this._fmtPace(a.paceSec), hr:a.hr,
+    }));
+    const arrow=(k)=> S.sortKey===k ? (S.sortDir==="asc"?"↑":"↓") : "";
+    const tbg=(t)=> S.type===t?"#C4F82A":"transparent";
+    const tcol=(t)=> S.type===t?"#0B0B0F":"#9C9CA6";
+    const mkType=(t)=>({label:t,bg:tbg(t),color:tcol(t),onClick:()=>this.setState({type:t,page:0})});
+    const from=list.length?page*per+1:0, to=Math.min(list.length,page*per+per);
+    return {
+      totalLabel: all.length+" total",
+      resultLabel: list.length+" result"+(list.length===1?"":"s"),
+      typeFilters: ["All","Run","Ride","Gym"].map(mkType),
+      range: S.range, onRange:(e)=>this.setState({range:e.target.value,page:0}),
+      pageRows: slice, empty: list.length===0,
+      arrowDate:arrow("date"),arrowTitle:arrow("title"),arrowDist:arrow("dist"),arrowDur:arrow("dur"),arrowPace:arrow("pace"),arrowHr:arrow("hr"),
+      sortDate:()=>this._sortToggle("date"),sortTitle:()=>this._sortToggle("title"),sortDist:()=>this._sortToggle("dist"),sortDur:()=>this._sortToggle("dur"),sortPace:()=>this._sortToggle("pace"),sortHr:()=>this._sortToggle("hr"),
+      rangeLabel: list.length? `Showing ${from}–${to} of ${list.length}` : "No results",
+      pageLabel: `${page+1} / ${pages}`,
+      prev:()=>this.setState(s=>({page:Math.max(0,s.page-1)})), next:()=>this.setState(s=>({page:Math.min(pages-1,s.page+1)})),
+      prevColor: page===0?"#3A3A42":"#ECECEF", nextColor: page>=pages-1?"#3A3A42":"#ECECEF",
+    };
+  }
+}
+</script>
+</body>
+</html>

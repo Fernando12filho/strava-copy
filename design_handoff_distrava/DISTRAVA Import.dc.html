@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0B0B0F; }
+  a { color: #C4F82A; text-decoration: none; }
+  a:hover { color: #d6ff5c; }
+  ::selection { background: rgba(196,248,42,0.25); color: #fff; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #26262E; border-radius: 10px; border: 2px solid #0B0B0F; }
+  .nav-item:hover { background:#15151B; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div style="display:flex; height:100vh; background:#0B0B0F; color:#ECECEF; font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased; overflow:hidden;">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside style="width:248px; flex:none; background:#0D0D12; border-right:1px solid #1C1C22; display:flex; flex-direction:column; padding:22px 14px;">
+    <div style="padding:8px 12px 22px;"><div style="font-family:'Inter'; font-weight:800; font-size:22px; letter-spacing:-0.03em; line-height:1;">D<span style="color:#C4F82A;">I</span>STRAVA</div></div>
+    <nav style="display:flex; flex-direction:column; gap:2px;">
+      <a href="DISTRAVA%20Dashboard.dc.html" class="nav-item" style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; cursor:pointer;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Dashboard</span></a>
+      <a href="DISTRAVA%20Activities.dc.html" class="nav-item" style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; cursor:pointer;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Activities</span></a>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Routes</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Strength</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="height:1px; background:#1C1C22; margin:12px 14px;"></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Coach</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; opacity:0.5;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Insights</span><span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span></div>
+      <div style="height:1px; background:#1C1C22; margin:12px 14px;"></div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; background:#17171D; position:relative; cursor:pointer;"><span style="position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:2px; background:#C4F82A;"></span><span style="font-weight:600; font-size:14px; color:#ECECEF;">Import</span></div>
+      <a href="DISTRAVA%20Settings.dc.html" class="nav-item" style="display:flex; align-items:center; padding:10px 14px; border-radius:9px; cursor:pointer;"><span style="font-weight:500; font-size:14px; color:#9C9CA6;">Settings</span></a>
+    </nav>
+    <div style="margin-top:auto; padding:14px; display:flex; align-items:center; gap:9px;"><span style="width:7px; height:7px; border-radius:50%; background:#C4F82A; flex:none; box-shadow:0 0 8px rgba(196,248,42,0.6);"></span><span style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; line-height:1.4;">Local-only · nothing<br>leaves this machine</span></div>
+  </aside>
+
+  <!-- ===== CONTENT ===== -->
+  <main style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+    <header style="height:64px; flex:none; border-bottom:1px solid #1C1C22; display:flex; align-items:center; padding:0 32px;"><div style="font-family:'Inter'; font-weight:600; font-size:17px; letter-spacing:-0.01em;">Import</div></header>
+
+    <div style="flex:1; overflow-y:auto; padding:40px 32px;">
+      <div style="max-width:680px; margin:0 auto;">
+
+        <!-- PRIVACY BANNER -->
+        <div style="display:flex; align-items:center; gap:12px; background:rgba(196,248,42,0.05); border:1px solid rgba(196,248,42,0.25); border-radius:12px; padding:14px 18px; margin-bottom:28px;">
+          <span style="width:8px; height:8px; border-radius:50%; background:#C4F82A; flex:none; box-shadow:0 0 8px rgba(196,248,42,0.6);"></span>
+          <div style="font-family:'Inter'; font-size:13px; color:#C7C7CE; line-height:1.5;"><span style="color:#ECECEF; font-weight:600;">Parsed entirely on this machine.</span> Files are read locally by the Flask process — nothing is uploaded, and no network request leaves your computer.</div>
+        </div>
+
+        <!-- IDLE: DROPZONE -->
+        <sc-if value="{{ isIdle }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ start }}" style="border:1.5px dashed #33333D; border-radius:16px; background:#101015; padding:56px 40px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:16px;" style-hover="border-color:#C4F82A; background:#121418;">
+          <div style="width:56px; height:56px; border:1.5px solid #33333D; border-radius:14px; display:flex; align-items:center; justify-content:center;"><span style="font-family:'JetBrains Mono'; font-size:22px; color:#C4F82A;">↓</span></div>
+          <div><div style="font-family:'Inter'; font-weight:600; font-size:19px;">Drop your Apple Health export</div><div style="font-family:'Inter'; font-size:14px; color:#9C9CA6; margin-top:6px;">Drag <span style="font-family:'JetBrains Mono'; color:#C7C7CE;">export.zip</span> here, or click to browse</div></div>
+          <button style="font-family:'Inter'; font-weight:600; font-size:14px; color:#0B0B0F; background:#C4F82A; border:none; border-radius:9px; padding:11px 22px; cursor:pointer;">Choose file</button>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.04em;">Also accepts .gpx · .csv · .fit</div>
+        </div>
+        </sc-if>
+
+        <!-- PROCESSING -->
+        <sc-if value="{{ isProcessing }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px solid #22222A; border-radius:16px; background:#16161C; padding:40px;">
+          <div style="display:flex; align-items:center; gap:14px; margin-bottom:26px;">
+            <span style="width:22px; height:22px; border:2.5px solid #26262E; border-top-color:#C4F82A; border-radius:50%; display:inline-block; animation:spin 0.8s linear infinite;"></span>
+            <div><div style="font-family:'Inter'; font-weight:600; font-size:17px;">Parsing export.zip</div><div style="font-family:'JetBrains Mono'; font-size:12px; color:#9C9CA6; margin-top:3px;">{{ stageLabel }}</div></div>
+          </div>
+          <div style="height:8px; background:#1E1E26; border-radius:4px; overflow:hidden; margin-bottom:12px;"><div style="height:100%; width:{{ pctWidth }}; background:#C4F82A; border-radius:4px; transition:width 0.3s ease;"></div></div>
+          <div style="display:flex; justify-content:space-between; font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68;"><span>{{ recordsLabel }}</span><span style="color:#C4F82A;">{{ pctLabel }}</span></div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; margin-top:22px; line-height:1.6;">Large Apple Health exports can hold years of samples — this can take a minute. You can leave this tab open; parsing continues locally.</div>
+        </div>
+        </sc-if>
+
+        <!-- DONE: SUMMARY -->
+        <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px solid #22222A; border-radius:16px; background:#16161C; overflow:hidden;">
+          <div style="display:flex; align-items:center; gap:12px; padding:24px 28px; border-bottom:1px solid #22222A;">
+            <span style="width:32px; height:32px; border-radius:50%; background:rgba(196,248,42,0.12); border:1px solid rgba(196,248,42,0.4); display:flex; align-items:center; justify-content:center; color:#C4F82A; font-family:'JetBrains Mono'; font-size:15px;">✓</span>
+            <div><div style="font-family:'Inter'; font-weight:600; font-size:18px;">Import complete</div><div style="font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68; margin-top:3px;">export.zip · 148 MB · 41s</div></div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr);">
+            <div style="padding:24px 28px; border-right:1px solid #22222A;"><div style="font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68; letter-spacing:0.12em; text-transform:uppercase;">Imported</div><div style="font-family:'JetBrains Mono'; font-weight:500; font-size:34px; color:#C4F82A; margin-top:10px; font-variant-numeric:tabular-nums;">1,284</div><div style="font-family:'Inter'; font-size:12px; color:#9C9CA6; margin-top:2px;">activities</div></div>
+            <div style="padding:24px 28px; border-right:1px solid #22222A;"><div style="font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68; letter-spacing:0.12em; text-transform:uppercase;">Skipped</div><div style="font-family:'JetBrains Mono'; font-weight:500; font-size:34px; margin-top:10px; font-variant-numeric:tabular-nums;">37</div><div style="font-family:'Inter'; font-size:12px; color:#9C9CA6; margin-top:2px;">duplicates</div></div>
+            <div style="padding:24px 28px;"><div style="font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68; letter-spacing:0.12em; text-transform:uppercase;">Range</div><div style="font-family:'JetBrains Mono'; font-weight:500; font-size:20px; margin-top:14px; line-height:1.3;">Mar 2019<br>→ Jul 2026</div></div>
+          </div>
+          <div style="display:flex; gap:12px; padding:22px 28px; border-top:1px solid #22222A;">
+            <a href="DISTRAVA%20Dashboard.dc.html" style="font-family:'Inter'; font-weight:600; font-size:14px; color:#0B0B0F; background:#C4F82A; border-radius:9px; padding:11px 20px;">Go to dashboard</a>
+            <button onClick="{{ reset }}" style="font-family:'Inter'; font-weight:500; font-size:14px; color:#ECECEF; background:transparent; border:1px solid #33333D; border-radius:9px; padding:11px 20px; cursor:pointer;">Import another</button>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- STATE SWITCHER (design aid) -->
+        <div style="margin-top:28px; display:flex; align-items:center; gap:10px;">
+          <span style="font-family:'JetBrains Mono'; font-size:10px; color:#3A3A42; letter-spacing:0.1em;">PREVIEW STATE</span>
+          <div style="display:flex; gap:6px;">
+            <button onClick="{{ toIdle }}" style="font-family:'JetBrains Mono'; font-size:11px; color:#9C9CA6; background:#131319; border:1px solid #22222A; border-radius:7px; padding:5px 11px; cursor:pointer;">idle</button>
+            <button onClick="{{ toProcessing }}" style="font-family:'JetBrains Mono'; font-size:11px; color:#9C9CA6; background:#131319; border:1px solid #22222A; border-radius:7px; padding:5px 11px; cursor:pointer;">processing</button>
+            <button onClick="{{ toDone }}" style="font-family:'JetBrains Mono'; font-size:11px; color:#9C9CA6; background:#131319; border:1px solid #22222A; border-radius:7px; padding:5px 11px; cursor:pointer;">done</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:760}}">
+class Component extends DCLogic {
+  state = { phase: "idle", pct: 0 };
+  _stages = [
+    [0, "Unzipping archive"],
+    [12, "Reading export.xml"],
+    [34, "Parsing workout records"],
+    [61, "Matching GPS routes"],
+    [83, "De-duplicating against database"],
+    [96, "Building indexes"],
+  ];
+  _stageLabel(pct){ let l=this._stages[0][1]; for(const [t,lab] of this._stages){ if(pct>=t) l=lab; } return l; }
+
+  _run(){
+    clearInterval(this._t);
+    this.setState({ phase:"processing", pct:0 });
+    this._t = setInterval(()=>{
+      this.setState(s=>{
+        const np = s.pct + Math.max(1, (100-s.pct)*0.06);
+        if (np >= 100) { clearInterval(this._t); return { pct:100, phase:"done" }; }
+        return { pct:np };
+      });
+    }, 130);
+  }
+  componentWillUnmount(){ clearInterval(this._t); }
+
+  renderVals(){
+    const p = this.state.phase, pct = Math.round(this.state.pct);
+    return {
+      isIdle: p==="idle", isProcessing: p==="processing", isDone: p==="done",
+      start: ()=>this._run(),
+      reset: ()=>{ clearInterval(this._t); this.setState({phase:"idle",pct:0}); },
+      pctWidth: pct+"%", pctLabel: pct+"%",
+      stageLabel: this._stageLabel(pct),
+      recordsLabel: Math.round(pct/100*1284).toLocaleString()+" / 1,284 activities",
+      toIdle: ()=>{ clearInterval(this._t); this.setState({phase:"idle",pct:0}); },
+      toProcessing: ()=>{ clearInterval(this._t); this.setState({phase:"processing",pct:47}); },
+      toDone: ()=>{ clearInterval(this._t); this.setState({phase:"done",pct:100}); },
+    };
+  }
+}
+</script>
+</body>
+</html>

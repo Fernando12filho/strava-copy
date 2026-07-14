@@ -1,71 +1,151 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
+{% block page_title %}<div class="topbar-title">Dashboard</div>{% endblock %}
+{% block topbar_right %}
+  <span class="topbar-meta">{{ 'Last import · ' + last_import.strftime('%b %d, %Y') if last_import else 'No imports yet' }}</span>
+  <a class="btn btn-primary" href="{{ url_for('main.import_page') }}">Import</a>
+{% endblock %}
+
+{% macro stat_delta(value, is_percent, label) %}
+  {% if value is none %}
+    <div class="stat-delta"><span class="vs-label">{{ label }}</span></div>
+  {% else %}
+    {% set positive = value >= 0 %}
+    <div class="stat-delta {{ 'positive' if positive else 'negative' }}">
+      <span class="arrow">{{ '▲' if positive else '▼' }}</span>{% if is_percent %}{{ '%.1f'|format(value|abs) }}%{% else %}{{ (value|abs)|int }}{% endif %}<span class="vs-label">{{ label }}</span>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% block scroll_area_class %}{{ 'centered' if not has_data }}{% endblock %}
+
 {% block content %}
-<h1>Dashboard</h1>
+{% if has_data %}
+<div class="container">
 
-<div class="card-grid">
-  <div class="card">
-    <div class="stat-label">Weekly Distance</div>
-    <div class="stat-value">{{ "%.1f"|format(weekly_distance / 1000) }} km</div>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">This week · Distance</div>
+      <div class="stat-value-row"><span class="stat-value">{{ '%.1f'|format(weekly_distance_km) }}</span><span class="stat-unit">km</span></div>
+      {{ stat_delta(weekly_distance_delta, true, 'vs last week') }}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This week · Time</div>
+      <div class="stat-value-row"><span class="stat-value">{{ weekly_duration_hours|int }}:{{ '%02d'|format(((weekly_duration_hours % 1) * 60)|int) }}</span><span class="stat-unit">h</span></div>
+      {{ stat_delta(weekly_duration_delta, true, 'vs last week') }}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This week · Activities</div>
+      <div class="stat-value-row"><span class="stat-value">{{ weekly_count }}</span></div>
+      {{ stat_delta(weekly_count_delta, false, 'vs last week') }}
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Training load</div>
+      <div class="stat-value-row"><span class="stat-value">{{ training_load|round|int }}</span></div>
+      {{ stat_delta(training_load_delta, true, '7-day trend') }}
+    </div>
   </div>
-  <div class="card">
-    <div class="stat-label">Weekly Duration</div>
-    <div class="stat-value">{{ (weekly_duration / 60) | round | int }} min</div>
-  </div>
-  <div class="card">
-    <div class="stat-label">Fitness (CTL)</div>
-    <div class="stat-value">{{ "%.1f"|format(current_fitness.ctl) }}</div>
-  </div>
-  <div class="card">
-    <div class="stat-label">Fatigue (ATL)</div>
-    <div class="stat-value">{{ "%.1f"|format(current_fitness.atl) }}</div>
-  </div>
-  <div class="card">
-    <div class="stat-label">Form</div>
-    <div class="stat-value">{{ "%.1f"|format(current_fitness.form) }}</div>
-  </div>
-</div>
 
-<div class="card">
-  <div class="stat-label">Monthly Trend (distance, km)</div>
-  <canvas id="monthly-trend-chart"></canvas>
-</div>
-
-<div class="card">
-  <div class="stat-label">Personal Bests</div>
-  <table>
-    <thead>
-      <tr>
-        <th>Distance</th>
-        <th>Time</th>
-        <th>Pace /km</th>
-        <th>Achieved</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for be in best_efforts %}
-      <tr>
-        <td>{{ be.distance_label }}</td>
-        <td>{{ (be.duration_seconds / 60) | round(1) }} min</td>
-        <td>{{ (be.pace_per_km_seconds / 60) | round(1) }} min/km</td>
-        <td>{{ be.achieved_at.strftime("%Y-%m-%d") }}</td>
-      </tr>
+  <div class="card chart-card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Training calendar</div>
+        <div class="card-subtitle">Last 5 weeks · {{ streak }}-day streak</div>
+      </div>
+      <div class="calendar-legend">
+        <span>Rest</span>
+        <span class="swatch" style="background:#1E1E26;"></span>
+        <span class="swatch" style="background:rgba(196,248,42,0.35);"></span>
+        <span class="swatch" style="background:rgba(196,248,42,0.65);"></span>
+        <span class="swatch" style="background:#C4F82A;"></span>
+        <span>Hard</span>
+      </div>
+    </div>
+    <div class="calendar-row" style="margin-top:18px;">
+      {% for day in calendar %}
+      <div class="calendar-cell"
+           title="{{ day.date.strftime('%b') }} {{ day.date.day }} · {{ 'rest' if day.level == 0 else 'trained' }}"
+           style="background:{{ ['#1E1E26', 'rgba(196,248,42,0.35)', 'rgba(196,248,42,0.65)', '#C4F82A'][day.level] }}; border:1px solid {{ '#26262E' if day.level == 0 else 'transparent' }};">
+      </div>
       {% endfor %}
-    </tbody>
-  </table>
+    </div>
+    <div class="calendar-footer">
+      <span>{{ calendar_start.strftime('%b') }} {{ calendar_start.day }}</span>
+      <span>{{ calendar_end.strftime('%b') }} {{ calendar_end.day }}</span>
+    </div>
+  </div>
+
+  <div class="card chart-card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Weekly volume</div>
+        <div class="card-subtitle">Last 12 weeks · kilometers</div>
+      </div>
+      <div class="chart-legend"><span class="swatch"></span>Distance</div>
+    </div>
+    <div class="chart-body"><canvas id="weekly-volume-chart"></canvas></div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:24px;">
+    <div class="table-card">
+      <div class="card-header">
+        <div class="title">Recent activities</div>
+        <a class="link-btn" href="{{ url_for('main.activity_list') }}">View all →</a>
+      </div>
+      <div>
+        {% for a in recent %}
+        <a class="recent-row" href="{{ url_for('main.activity_detail', activity_id=a.id) }}">
+          <span class="mono" style="font-size:12px; color:var(--text-secondary);">{{ a.date }}</span>
+          <div class="recent-row-meta">
+            <span class="type-pill"><span class="type-dot" style="background:{{ a.dot }};"></span><span class="type-label">{{ a.type }}</span></span>
+            <span class="cell-title">{{ a.title }}</span>
+          </div>
+          <span class="mono" style="font-size:13px; text-align:right;">{{ a.dist }}</span>
+          <span class="mono" style="font-size:13px; text-align:right; color:var(--text-secondary);">{{ a.pace }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="card-header with-dot">
+        <span class="status-dot"></span>
+        <div class="title">Recent PRs</div>
+      </div>
+      <div class="pr-list">
+        {% for p in recent_prs %}
+        <div class="pr-row">
+          <div><div class="pr-label">{{ p.label }}</div><div class="pr-date mono">{{ p.date }}</div></div>
+          <div class="pr-value">{{ p.value }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
 </div>
 
+{% else %}
+<div class="empty-state" style="max-width:440px;">
+  <div class="empty-state-icon"><span class="inner"></span></div>
+  <div class="empty-state-title">Nothing imported yet</div>
+  <div class="empty-state-body">Your dashboard fills in once you import training data. Bring in an Apple Health export, or drop in .gpx / .csv files — everything is parsed locally on this machine.</div>
+  <div class="empty-state-actions">
+    <a class="btn btn-primary" href="{{ url_for('main.import_page') }}">Import data</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if has_data %}
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 <script>
-const monthlyTrend = {{ monthly_trend | tojson }};
-new Chart(document.getElementById("monthly-trend-chart"), {
-  type: "bar",
-  data: {
-    labels: monthlyTrend.map((row) => row[0]),
-    datasets: [{
-      label: "Distance (km)",
-      data: monthlyTrend.map((row) => row[1] / 1000),
-    }],
-  },
-});
+  initWeeklyVolumeChart(
+    "weekly-volume-chart",
+    {{ range(1, weekly_volume|length + 1) | list | tojson }}.map((n) => "W" + n),
+    {{ weekly_volume | tojson }}
+  );
 </script>
+{% endif %}
 {% endblock %}

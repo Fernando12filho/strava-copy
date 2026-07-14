@@ -24,6 +24,8 @@ class Activity(Base):
     source_id = Column(String, nullable=True)
     dedup_key = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    title = Column(String, nullable=True)
+    source_device = Column(String, nullable=True)
 
     streams = relationship(
         "ActivityStream", backref="activity", cascade="all, delete-orphan"
@@ -83,3 +85,5 @@ class UserSettings(Base):
     resting_hr = Column(Integer, nullable=True)
     max_hr = Column(Integer, nullable=True)
     birth_year = Column(Integer, nullable=True)
+    weight_kg = Column(Float, nullable=True)
+    units = Column(String, nullable=True)

@@ -1,40 +1,75 @@
 {% extends "base.html" %}
 {% block title %}Activities{% endblock %}
+{% block page_title %}
+<div style="display:flex; align-items:baseline; gap:12px;">
+  <div class="topbar-title">Activities</div>
+  <span class="topbar-meta">{{ total }} total</span>
+</div>
+{% endblock %}
+{% block topbar_right %}
+  <a class="btn btn-primary" href="{{ url_for('main.import_page') }}">Import</a>
+{% endblock %}
+
 {% block content %}
-<h1>Activities</h1>
+<div class="container">
 
-<form class="filters" method="get">
-  <select name="type">
-    <option value="">All types</option>
-    {% for t in ["Run", "Walk", "Cycle"] %}
-    <option value="{{ t }}" {% if request.args.get("type") == t %}selected{% endif %}>{{ t }}</option>
-    {% endfor %}
-  </select>
-  <input type="date" name="from" value="{{ request.args.get('from', '') }}" />
-  <input type="date" name="to" value="{{ request.args.get('to', '') }}" />
-  <button type="submit">Filter</button>
-</form>
+  <div class="filter-bar">
+    <div class="segmented">
+      {% for t in type_filters %}
+      <a class="segmented-btn {{ 'active' if t.active }}" href="{{ t.href }}">{{ t.label }}</a>
+      {% endfor %}
+    </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Type</th>
-      <th>Distance (km)</th>
-      <th>Duration (min)</th>
-      <th>Avg HR</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for activity in activities %}
-    <tr data-activity-id="{{ activity.id }}">
-      <td><a href="{{ url_for('main.activity_detail', activity_id=activity.id) }}">{{ activity.start_time.strftime("%Y-%m-%d %H:%M") }}</a></td>
-      <td>{{ activity.activity_type }}</td>
-      <td>{{ "%.2f"|format(activity.distance_meters / 1000) }}</td>
-      <td>{{ (activity.duration_seconds / 60) | round | int }}</td>
-      <td>{{ "%.0f"|format(activity.avg_hr) if activity.avg_hr is not none else "—" }}</td>
-    </tr>
+    <form method="get" class="range-group">
+      <input type="hidden" name="type" value="{{ active_type }}" />
+      <input type="hidden" name="sort" value="{{ sort_key }}" />
+      <input type="hidden" name="dir" value="{{ sort_dir }}" />
+      <span class="range-label">RANGE</span>
+      <select name="range" class="range-select" onchange="this.form.submit()">
+        <option value="all" {{ 'selected' if active_range == 'all' }}>All time</option>
+        <option value="30" {{ 'selected' if active_range == '30' }}>Last 30 days</option>
+        <option value="90" {{ 'selected' if active_range == '90' }}>Last 3 months</option>
+        <option value="year" {{ 'selected' if active_range == 'year' }}>This year</option>
+      </select>
+    </form>
+
+    <div class="results-count">{{ total }} result{{ '' if total == 1 else 's' }}</div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header-row activities-cols">
+      <a class="sort-link" href="{{ sort_links.date.href }}">Date <span class="sort-arrow">{{ sort_links.date.arrow }}</span></a>
+      <span>Type</span>
+      <a class="sort-link" href="{{ sort_links.title.href }}">Title <span class="sort-arrow">{{ sort_links.title.arrow }}</span></a>
+      <a class="sort-link cell-right" href="{{ sort_links.dist.href }}"><span class="sort-arrow">{{ sort_links.dist.arrow }}</span> Distance</a>
+      <a class="sort-link cell-right" href="{{ sort_links.dur.href }}"><span class="sort-arrow">{{ sort_links.dur.arrow }}</span> Duration</a>
+      <a class="sort-link cell-right" href="{{ sort_links.pace.href }}"><span class="sort-arrow">{{ sort_links.pace.arrow }}</span> Pace</a>
+      <a class="sort-link cell-right" href="{{ sort_links.hr.href }}"><span class="sort-arrow">{{ sort_links.hr.arrow }}</span> HR</a>
+    </div>
+
+    {% for a in rows %}
+    <a class="table-row activities-cols" data-activity-id="{{ a.id }}" href="{{ url_for('main.activity_detail', activity_id=a.id) }}">
+      <span class="mono" style="font-size:13px; color:var(--text-secondary);">{{ a.date }}</span>
+      <span class="type-pill"><span class="type-dot" style="background:{{ a.dot }};"></span><span class="type-label">{{ a.type }}</span></span>
+      <span class="cell-title">{{ a.title }}</span>
+      <span class="mono cell-right" style="font-size:13px;">{{ a.dist }}</span>
+      <span class="mono cell-right" style="font-size:13px; color:var(--text-tertiary);">{{ a.dur }}</span>
+      <span class="mono cell-right" style="font-size:13px; color:var(--text-secondary);">{{ a.pace }}</span>
+      <span class="mono cell-right" style="font-size:13px; color:var(--text-secondary);">{{ a.hr }}</span>
+    </a>
+    {% else %}
+    <div class="table-empty">No activities match these filters.</div>
     {% endfor %}
-  </tbody>
-</table>
+  </div>
+
+  <div class="pagination">
+    <div class="pagination-label mono">{{ 'Showing ' ~ range_start ~ '–' ~ range_end ~ ' of ' ~ total if total else 'No results' }}</div>
+    <div class="pagination-controls">
+      <a class="page-btn {{ 'is-disabled' if page <= 1 }}" href="{{ prev_href }}">← Prev</a>
+      <span class="page-indicator">{{ page }} / {{ total_pages }}</span>
+      <a class="page-btn {{ 'is-disabled' if page >= total_pages }}" href="{{ next_href }}">Next →</a>
+    </div>
+  </div>
+
+</div>
 {% endblock %}

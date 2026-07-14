@@ -1,8 +1,13 @@
 import tempfile
+import time
+from collections import defaultdict
 from datetime import date, datetime, timedelta
+from math import ceil
 from pathlib import Path
+from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, g, jsonify, redirect, render_template, request, url_for
+from sqlalchemy import func
 
 from app import analytics, parser
 from app.models import Activity, ActivityStream, BestEffort, UserSettings
@@ -11,6 +16,7 @@ bp = Blueprint("main", __name__)
 
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 ALLOWED_IMPORT_EXTENSIONS = {".zip", ".gpx", ".csv"}
+ACTIVITIES_PER_PAGE = 10
 
 
 def get_db():
@@ -24,14 +30,70 @@ def index():
     return redirect(url_for("main.activity_list"))
 
 
+def _display_title(activity):
+    if activity.title:
+        return activity.title
+    return analytics.categorize_activity_type(activity.activity_type)["label"]
+
+
+def _detail_page_title(activity):
+    if activity.title:
+        return activity.title
+    label = analytics.categorize_activity_type(activity.activity_type)["label"]
+    return f"{label} · {activity.start_time.strftime('%b %d, %Y')}"
+
+
+def _avg_pace_seconds(activity):
+    if not activity.distance_meters:
+        return None
+    return activity.duration_seconds / (activity.distance_meters / 1000)
+
+
+def _activity_row(activity):
+    cat = analytics.categorize_activity_type(activity.activity_type)
+    return {
+        "id": activity.id,
+        "date": activity.start_time.strftime("%b %d"),
+        "type": cat["label"],
+        "dot": cat["dot"],
+        "title": _display_title(activity),
+        "dist": f"{activity.distance_meters / 1000:.1f} km" if activity.distance_meters else "—",
+        "dur": analytics.format_duration(activity.duration_seconds),
+        "pace": analytics.format_pace(_avg_pace_seconds(activity)) or "—",
+        "hr": f"{activity.avg_hr:.0f}" if activity.avg_hr is not None else "—",
+    }
+
+
+def _sort_value(activity, sort_key):
+    if sort_key == "title":
+        return _display_title(activity).lower()
+    if sort_key == "dist":
+        return activity.distance_meters or 0.0
+    if sort_key == "dur":
+        return activity.duration_seconds or 0
+    if sort_key == "pace":
+        pace = _avg_pace_seconds(activity)
+        return pace if pace is not None else float("inf")
+    if sort_key == "hr":
+        return activity.avg_hr if activity.avg_hr is not None else -1
+    return activity.start_time
+
+
+def _qs(overrides):
+    params = {k: v for k, v in request.args.to_dict().items()}
+    params.update(overrides)
+    params = {k: v for k, v in params.items() if v not in (None, "")}
+    return "?" + urlencode(params) if params else ""
+
+
+TYPE_FILTER_OPTIONS = ["All", "Run", "Ride", "Gym", "Other"]
+SORT_COLUMNS = [("date", "Date"), ("title", "Title"), ("dist", "Distance"), ("dur", "Duration"), ("pace", "Pace"), ("hr", "HR")]
+
+
 @bp.route("/activities")
 def activity_list():
     db = get_db()
     query = db.query(Activity)
-
-    activity_type = request.args.get("type")
-    if activity_type:
-        query = query.filter(Activity.activity_type == activity_type)
 
     date_from = request.args.get("from")
     if date_from:
@@ -41,8 +103,67 @@ def activity_list():
     if date_to:
         query = query.filter(Activity.start_time <= datetime.fromisoformat(date_to))
 
-    activities = query.order_by(Activity.start_time.desc()).all()
-    return render_template("activity_list.html", activities=activities)
+    range_key = request.args.get("range", "all")
+    if range_key != "all" and not date_from and not date_to:
+        now = datetime.now()
+        if range_key == "30":
+            query = query.filter(Activity.start_time >= now - timedelta(days=30))
+        elif range_key == "90":
+            query = query.filter(Activity.start_time >= now - timedelta(days=90))
+        elif range_key == "year":
+            query = query.filter(Activity.start_time >= datetime(now.year, 1, 1))
+
+    activities = query.all()
+
+    activity_type = request.args.get("type")
+    if activity_type and activity_type != "All":
+        activities = [
+            a for a in activities if analytics.categorize_activity_type(a.activity_type)["category"] == activity_type
+        ]
+
+    sort_key = request.args.get("sort", "date")
+    sort_dir = request.args.get("dir", "desc")
+    activities.sort(key=lambda a: _sort_value(a, sort_key), reverse=(sort_dir != "asc"))
+
+    total = len(activities)
+    total_pages = max(1, ceil(total / ACTIVITIES_PER_PAGE))
+    page = max(1, min(int(request.args.get("page", 1)), total_pages))
+    start = (page - 1) * ACTIVITIES_PER_PAGE
+    page_activities = activities[start : start + ACTIVITIES_PER_PAGE]
+
+    rows = [{**_activity_row(a)} for a in page_activities]
+
+    active_type = activity_type or "All"
+    type_filters = [
+        {"label": t, "active": t == active_type, "href": url_for("main.activity_list") + _qs({"type": t, "page": 1})}
+        for t in TYPE_FILTER_OPTIONS
+    ]
+
+    sort_links = {}
+    for key, _label in SORT_COLUMNS:
+        next_dir = "asc" if (sort_key == key and sort_dir == "desc") else "desc"
+        sort_links[key] = {
+            "href": url_for("main.activity_list") + _qs({"sort": key, "dir": next_dir, "page": 1}),
+            "arrow": ("↑" if sort_dir == "asc" else "↓") if sort_key == key else "",
+        }
+
+    return render_template(
+        "activity_list.html",
+        rows=rows,
+        total=total,
+        page=page,
+        total_pages=total_pages,
+        range_start=start + 1 if total else 0,
+        range_end=min(start + ACTIVITIES_PER_PAGE, total),
+        sort_key=sort_key,
+        sort_dir=sort_dir,
+        active_type=active_type,
+        active_range=range_key,
+        type_filters=type_filters,
+        sort_links=sort_links,
+        prev_href=url_for("main.activity_list") + _qs({"page": page - 1}),
+        next_href=url_for("main.activity_list") + _qs({"page": page + 1}),
+    )
 
 
 def _compute_splits(stream_data):
@@ -55,6 +176,7 @@ def _compute_splits(stream_data):
     elev_times, elevations = analytics.coalesce_stream_metric(
         stream_data["time"], stream_data.get("elevation", [])
     )
+    hr_times, hr_values = analytics.coalesce_stream_metric(stream_data["time"], stream_data.get("hr", []))
     cumulative_time = times[0]
     prev_elevation = analytics.value_at_time(elev_times, elevations, cumulative_time) if elev_times else None
     for split in splits:
@@ -65,10 +187,29 @@ def _compute_splits(stream_data):
             split["grade_adjusted_pace_seconds"] = analytics.grade_adjusted_pace(
                 split["pace_per_km_seconds"], grade_percent
             )
+            split["elevation_change_meters"] = curr_elevation - prev_elevation
         else:
             split["grade_adjusted_pace_seconds"] = None
+            split["elevation_change_meters"] = None
+        split["hr"] = analytics.value_at_time(hr_times, hr_values, cumulative_time) if hr_times else None
         prev_elevation = curr_elevation
     return splits
+
+
+def _activity_own_best_efforts(db, activity, stream_data):
+    times, distances = analytics.coalesce_stream_metric(stream_data["time"], stream_data["distance"])
+    if len(times) < 2:
+        return []
+
+    efforts = []
+    for label, target_meters in parser.STANDARD_DISTANCES:
+        seconds = analytics.best_effort(times, distances, target_meters)
+        if seconds is None:
+            continue
+        global_best = db.query(BestEffort).filter_by(distance_label=label).first()
+        is_pr = bool(global_best and global_best.activity_id == activity.id)
+        efforts.append({"label": f"Fastest {label}", "value": analytics.format_duration(seconds), "is_pr": is_pr})
+    return efforts
 
 
 @bp.route("/activities/<int:activity_id>")
@@ -78,10 +219,29 @@ def activity_detail(activity_id):
     if activity is None:
         return "Activity not found", 404
 
-    stream = db.query(ActivityStream).filter_by(activity_id=activity_id).first()
-    splits = _compute_splits(stream.stream_data) if stream is not None else []
+    category = analytics.categorize_activity_type(activity.activity_type)
+    # Splits/best-efforts/pace are a running concept — Apple Health streams for
+    # non-running workouts (e.g. Volleyball) can carry stray incidental distance
+    # samples that would otherwise produce nonsensical pace values here.
+    is_pace_based = category["category"] == "Run"
 
-    return render_template("activity_detail.html", activity=activity, splits=splits)
+    stream = db.query(ActivityStream).filter_by(activity_id=activity_id).first()
+    splits = []
+    efforts = []
+    if stream is not None and is_pace_based:
+        splits = analytics.annotate_splits_for_display(_compute_splits(stream.stream_data))
+        efforts = _activity_own_best_efforts(db, activity, stream.stream_data)
+
+    return render_template(
+        "activity_detail.html",
+        activity=activity,
+        display_title=_detail_page_title(activity),
+        category=category,
+        avg_pace_seconds=_avg_pace_seconds(activity) if is_pace_based else None,
+        splits=splits,
+        efforts=efforts,
+        is_pace_based=is_pace_based,
+    )
 
 
 @bp.route("/activities/<int:activity_id>/stream.json")
@@ -123,6 +283,7 @@ def import_file():
     db = get_db()
     tmp_path = Path(tempfile.gettempdir()) / filename
     upload.save(tmp_path)
+    started = time.monotonic()
     try:
         if suffix == ".zip":
             result = parser.import_apple_health_zip(tmp_path, db)
@@ -132,13 +293,35 @@ def import_file():
             result = parser.import_csv(tmp_path, db)
     finally:
         tmp_path.unlink(missing_ok=True)
+    elapsed = time.monotonic() - started
 
+    earliest, latest = db.query(func.min(Activity.start_time), func.max(Activity.start_time)).one()
+    date_range = f"{earliest.strftime('%b %Y')} → {latest.strftime('%b %Y')}" if earliest and latest else None
+
+    result.update(
+        {
+            "filename": filename,
+            "size_bytes": size,
+            "elapsed_seconds": round(elapsed, 1),
+            "date_range": date_range,
+        }
+    )
     return jsonify(result), 200
 
 
 DEFAULT_RESTING_HR = 60
 DEFAULT_MAX_HR = 190
-MONTHLY_TREND_MONTHS = 6
+
+
+def _resolve_hr_profile(settings, today):
+    resting_hr = settings.resting_hr if settings and settings.resting_hr else DEFAULT_RESTING_HR
+    if settings and settings.max_hr:
+        max_hr = settings.max_hr
+    elif settings and settings.birth_year:
+        max_hr = analytics.default_max_hr(settings.birth_year, today.year)
+    else:
+        max_hr = DEFAULT_MAX_HR
+    return resting_hr, max_hr
 
 
 @bp.route("/settings", methods=["GET", "POST"])
@@ -153,46 +336,75 @@ def settings_page():
         resting_hr = request.form.get("resting_hr")
         max_hr = request.form.get("max_hr")
         birth_year = request.form.get("birth_year")
+        weight_kg = request.form.get("weight_kg")
+        units = request.form.get("units")
         settings.resting_hr = int(resting_hr) if resting_hr else None
         settings.max_hr = int(max_hr) if max_hr else None
         settings.birth_year = int(birth_year) if birth_year else None
+        settings.weight_kg = float(weight_kg) if weight_kg else None
+        settings.units = units or None
         db.commit()
+        if request.headers.get("X-Requested-With") == "fetch":
+            return "", 204
         return redirect(url_for("main.settings_page"))
 
-    return render_template("settings.html", settings=settings)
+    _, resolved_max_hr = _resolve_hr_profile(settings, date.today())
+    db_url = current_app.config.get("DATABASE_URL", "")
+    db_path = db_url[len("sqlite:///") :] if db_url.startswith("sqlite:///") else db_url
+    db_size_mb = None
+    path = Path(db_path)
+    if path.exists():
+        db_size_mb = path.stat().st_size / (1024 * 1024)
+
+    return render_template(
+        "settings.html",
+        settings=settings,
+        resolved_max_hr=resolved_max_hr,
+        zones=analytics.hr_zone_bands(resolved_max_hr),
+        db_path=db_path,
+        db_size_mb=db_size_mb,
+    )
 
 
-def _resolve_hr_profile(settings, today):
-    resting_hr = settings.resting_hr if settings and settings.resting_hr else DEFAULT_RESTING_HR
-    if settings and settings.max_hr:
-        max_hr = settings.max_hr
-    elif settings and settings.birth_year:
-        max_hr = analytics.default_max_hr(settings.birth_year, today.year)
-    else:
-        max_hr = DEFAULT_MAX_HR
-    return resting_hr, max_hr
+@bp.route("/settings/wipe", methods=["POST"])
+def settings_wipe():
+    db = get_db()
+    db.query(ActivityStream).delete()
+    db.query(BestEffort).delete()
+    db.query(Activity).delete()
+    db.commit()
+    return redirect(url_for("main.settings_page"))
+
+
+def _pct_delta(current, previous):
+    if not previous:
+        return None
+    return (current - previous) / previous * 100
+
+
+WEEKLY_VOLUME_WEEKS = 12
+CALENDAR_DAYS = 35
 
 
 @bp.route("/dashboard")
 def dashboard():
     db = get_db()
     today = date.today()
-    week_ago = today - timedelta(days=7)
-    trend_start = (today.replace(day=1) - timedelta(days=30 * (MONTHLY_TREND_MONTHS - 1))).replace(day=1)
 
     activities = db.query(Activity).order_by(Activity.start_time.asc()).all()
+    has_data = len(activities) > 0
 
-    week_activities = [a for a in activities if a.start_time.date() >= week_ago]
-    weekly_distance = sum(a.distance_meters for a in week_activities)
-    weekly_duration = sum(a.duration_seconds for a in week_activities)
+    this_week_start = today - timedelta(days=6)
+    last_week_start = today - timedelta(days=13)
+    last_week_end = today - timedelta(days=7)
 
-    monthly_totals = {}
-    for a in activities:
-        if a.start_time.date() < trend_start:
-            continue
-        key = a.start_time.strftime("%Y-%m")
-        monthly_totals[key] = monthly_totals.get(key, 0.0) + a.distance_meters
-    monthly_trend = sorted(monthly_totals.items())
+    this_week = [a for a in activities if this_week_start <= a.start_time.date() <= today]
+    last_week = [a for a in activities if last_week_start <= a.start_time.date() <= last_week_end]
+
+    this_week_distance = sum(a.distance_meters for a in this_week)
+    last_week_distance = sum(a.distance_meters for a in last_week)
+    this_week_duration = sum(a.duration_seconds for a in this_week)
+    last_week_duration = sum(a.duration_seconds for a in last_week)
 
     settings = db.query(UserSettings).first()
     resting_hr, max_hr = _resolve_hr_profile(settings, today)
@@ -205,20 +417,92 @@ def dashboard():
         load = analytics.trimp(a.duration_seconds / 60, a.avg_hr, resting_hr, max_hr)
         daily_totals[day] = daily_totals.get(day, 0.0) + load
 
+    training_load = 0.0
+    training_load_delta = None
     if daily_totals:
         start_date = min(daily_totals.keys())
         loads = analytics.build_daily_trimp_loads(daily_totals, start_date, today)
-        current_fitness = analytics.ctl_atl(loads)[-1]
+        fitness_series = analytics.ctl_atl(loads)
+        training_load = fitness_series[-1]["atl"]
+        trend_index = len(fitness_series) - 1 - 7
+        if trend_index >= 0:
+            training_load_delta = _pct_delta(training_load, fitness_series[trend_index]["atl"])
+
+    calendar_start = today - timedelta(days=CALENDAR_DAYS - 1)
+    calendar = analytics.calendar_levels(daily_totals, calendar_start, today)
+    streak = analytics.current_streak(calendar)
+
+    weekly_volume = []
+    for weeks_back in range(WEEKLY_VOLUME_WEEKS - 1, -1, -1):
+        week_end = today - timedelta(days=7 * weeks_back)
+        week_start = week_end - timedelta(days=6)
+        total_km = sum(a.distance_meters for a in activities if week_start <= a.start_time.date() <= week_end) / 1000
+        weekly_volume.append(round(total_km, 1))
+
+    weekly_loads = defaultdict(float)
+    for day, load in daily_totals.items():
+        weekly_loads[day.isocalendar()[:2]] += load
+    if weekly_loads:
+        best_week_key, best_week_load = max(weekly_loads.items(), key=lambda kv: kv[1])
+        best_week_label = "This week" if best_week_key == today.isocalendar()[:2] else f"Week {best_week_key[1]}, {best_week_key[0]}"
     else:
-        current_fitness = {"ctl": 0.0, "atl": 0.0, "form": 0.0}
+        best_week_load = 0.0
+        best_week_label = "—"
+
+    recent = [_activity_row(a) for a in list(reversed(activities))[:5]]
 
     best_efforts = db.query(BestEffort).order_by(BestEffort.distance_meters.asc()).all()
+    five_k = next((be for be in best_efforts if be.distance_label == "5K"), None)
+    one_k = next((be for be in best_efforts if be.distance_label == "1K"), None)
+    runs = [a for a in activities if analytics.categorize_activity_type(a.activity_type)["category"] == "Run"]
+    longest_run = max(runs, key=lambda a: a.distance_meters, default=None)
+
+    recent_prs = []
+    if five_k:
+        recent_prs.append(
+            {
+                "label": "Fastest 5K",
+                "value": analytics.format_duration(five_k.duration_seconds),
+                "date": five_k.achieved_at.strftime("%b %d, %Y"),
+            }
+        )
+    if one_k:
+        recent_prs.append(
+            {
+                "label": "Best 1K",
+                "value": analytics.format_duration(one_k.duration_seconds),
+                "date": one_k.achieved_at.strftime("%b %d, %Y"),
+            }
+        )
+    if longest_run:
+        recent_prs.append(
+            {
+                "label": "Longest run",
+                "value": f"{longest_run.distance_meters / 1000:.1f} km",
+                "date": longest_run.start_time.strftime("%b %d, %Y"),
+            }
+        )
+    recent_prs.append({"label": "Highest weekly load", "value": f"{best_week_load:.0f}", "date": best_week_label})
+
+    last_import = max((a.created_at for a in activities if a.created_at), default=None)
 
     return render_template(
         "dashboard.html",
-        weekly_distance=weekly_distance,
-        weekly_duration=weekly_duration,
-        monthly_trend=monthly_trend,
-        current_fitness=current_fitness,
-        best_efforts=best_efforts,
+        has_data=has_data,
+        last_import=last_import,
+        weekly_distance_km=this_week_distance / 1000,
+        weekly_distance_delta=_pct_delta(this_week_distance, last_week_distance),
+        weekly_duration_hours=this_week_duration / 3600,
+        weekly_duration_delta=_pct_delta(this_week_duration, last_week_duration),
+        weekly_count=len(this_week),
+        weekly_count_delta=len(this_week) - len(last_week),
+        training_load=training_load,
+        training_load_delta=training_load_delta,
+        calendar=calendar,
+        streak=streak,
+        calendar_start=calendar_start,
+        calendar_end=today,
+        weekly_volume=weekly_volume,
+        recent=recent,
+        recent_prs=recent_prs,
     )

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0B0B0F; }
+  a { color: #C4F82A; text-decoration: none; }
+  a:hover { color: #d6ff5c; }
+  ::selection { background: rgba(196,248,42,0.25); color: #fff; }
+</style>
+</helmet>
+<div style="background:#0B0B0F; color:#ECECEF; font-family:'Inter',system-ui,sans-serif; min-height:100vh; padding:64px 56px 96px; -webkit-font-smoothing:antialiased;">
+  <div style="max-width:1080px; margin:0 auto;">
+
+    <!-- ===== HEADER ===== -->
+    <header style="display:flex; justify-content:space-between; align-items:flex-end; padding-bottom:40px; border-bottom:1px solid #1C1C22; margin-bottom:64px;">
+      <div>
+        <div style="font-family:'Inter'; font-weight:800; font-size:44px; letter-spacing:-0.03em; color:#ECECEF; line-height:1;">D<span style="color:#C4F82A;">I</span>STRAVA</div>
+        <div style="font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68; letter-spacing:0.04em; margin-top:14px;">you vs. your past self — design system v1</div>
+      </div>
+      <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.14em; text-transform:uppercase; text-align:right;">Dark mode only<br>Desktop · self-hosted</div>
+    </header>
+
+    <!-- ===== WORDMARK ===== -->
+    <section style="margin-bottom:80px;">
+      <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.16em; text-transform:uppercase; padding-bottom:16px; border-bottom:1px solid #1C1C22; margin-bottom:36px;">01 — Wordmark</div>
+      <div style="display:flex; gap:48px; flex-wrap:wrap; align-items:stretch;">
+        <div style="flex:1; min-width:420px; background:#16161C; border:1px solid #22222A; border-radius:14px; padding:56px 48px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:10px;">
+          <div style="font-family:'Inter'; font-weight:800; font-size:72px; letter-spacing:-0.035em; line-height:1;">D<span style="color:#C4F82A;">I</span>STRAVA</div>
+          <div style="font-family:'JetBrains Mono'; font-size:12px; color:#5E5E68; letter-spacing:0.05em;">Inter 800 · tracking −0.035em</div>
+        </div>
+        <div style="width:300px; display:flex; flex-direction:column; gap:16px;">
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; padding:24px; display:flex; align-items:center; justify-content:center;">
+            <div style="font-family:'Inter'; font-weight:800; font-size:26px; letter-spacing:-0.03em;">D<span style="color:#C4F82A;">I</span>STRAVA</div>
+          </div>
+          <div style="background:#C4F82A; border-radius:12px; padding:24px; display:flex; align-items:center; justify-content:center;">
+            <div style="font-family:'Inter'; font-weight:800; font-size:26px; letter-spacing:-0.03em; color:#0B0B0F;">DISTRAVA</div>
+          </div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; line-height:1.7;">Twist: the <span style="color:#C4F82A;">I</span> stroke is re-read as a lime rule — the only mark. Reverses to solid black on lime.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COLOR ===== -->
+    <section style="margin-bottom:80px;">
+      <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.16em; text-transform:uppercase; padding-bottom:16px; border-bottom:1px solid #1C1C22; margin-bottom:36px;">02 — Color</div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;">
+        <!-- swatch -->
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#0B0B0F; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#0B0B0F</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Base background</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#16161C; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#16161C</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Card / surface</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#1E1E26; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#1E1E26</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Elevated surface</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#26262E; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#26262E</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Border / divider</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#C4F82A; border-bottom:1px solid #22222A; position:relative;"><span style="position:absolute; bottom:12px; left:14px; font-family:'JetBrains Mono'; font-size:11px; color:#0B0B0F; font-weight:600;">ACCENT</span></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#C4F82A</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Electric lime — progress, active, primary</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#ECECEF; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#ECECEF</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Text — primary</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#9C9CA6; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#9C9CA6</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Text — secondary</div></div>
+        </div>
+        <div style="background:#16161C; border:1px solid #22222A; border-radius:12px; overflow:hidden;">
+          <div style="height:96px; background:#5E5E68; border-bottom:1px solid #22222A;"></div>
+          <div style="padding:16px;"><div style="font-family:'JetBrains Mono'; font-size:13px; color:#ECECEF;">#5E5E68</div><div style="font-size:13px; color:#9C9CA6; margin-top:4px;">Text — muted / labels</div></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:16px; margin-top:16px;">
+        <div style="flex:1; background:#16161C; border:1px solid #22222A; border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:14px;">
+          <div style="width:40px; height:40px; border-radius:8px; background:#C4F82A;"></div>
+          <div><div style="font-family:'JetBrains Mono'; font-size:13px; color:#C4F82A;">#C4F82A</div><div style="font-size:13px; color:#9C9CA6; margin-top:2px;">Positive delta / improvement</div></div>
+        </div>
+        <div style="flex:1; background:#16161C; border:1px solid #22222A; border-radius:12px; padding:16px 20px; display:flex; align-items:center; gap:14px;">
+          <div style="width:40px; height:40px; border-radius:8px; background:#E0685A;"></div>
+          <div><div style="font-family:'JetBrains Mono'; font-size:13px; color:#E0685A;">#E0685A</div><div style="font-size:13px; color:#9C9CA6; margin-top:2px;">Negative delta (functional only — never brand)</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TYPE ===== -->
+    <section style="margin-bottom:80px;">
+      <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.16em; text-transform:uppercase; padding-bottom:16px; border-bottom:1px solid #1C1C22; margin-bottom:8px;">03 — Type scale</div>
+      <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; margin-bottom:28px;">Inter — interface · JetBrains Mono — every number</div>
+
+      <div style="display:flex; align-items:baseline; gap:24px; padding:22px 0; border-bottom:1px solid #17171D;">
+        <div style="width:150px; flex:none; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">DISPLAY<br>Inter 700 · 56</div>
+        <div style="font-family:'Inter'; font-weight:700; font-size:56px; letter-spacing:-0.03em; line-height:1;">Your fastest 10K this year</div>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:22px 0; border-bottom:1px solid #17171D;">
+        <div style="width:150px; flex:none; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">HEADING<br>Inter 600 · 24</div>
+        <div style="font-family:'Inter'; font-weight:600; font-size:24px; letter-spacing:-0.01em;">Weekly training volume</div>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:22px 0; border-bottom:1px solid #17171D;">
+        <div style="width:150px; flex:none; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">BODY<br>Inter 400 · 15</div>
+        <div style="font-family:'Inter'; font-weight:400; font-size:15px; color:#C7C7CE; max-width:560px; line-height:1.55;">Analysis of your own training, computed locally. Nothing is uploaded, nothing is tracked, nothing costs a subscription.</div>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:22px 0; border-bottom:1px solid #17171D;">
+        <div style="width:150px; flex:none; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">CAPTION<br>Inter 500 · 12</div>
+        <div style="font-family:'Inter'; font-weight:500; font-size:12px; color:#9C9CA6; letter-spacing:0.14em; text-transform:uppercase;">Source device · Garmin Forerunner 265</div>
+      </div>
+      <div style="display:flex; align-items:baseline; gap:24px; padding:22px 0; border-bottom:1px solid #17171D;">
+        <div style="width:150px; flex:none; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">NUMERIC LG<br>JB Mono 500 · 64</div>
+        <div style="font-family:'JetBrains Mono'; font-weight:500; font-size:64px; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums;">42.6<span style="font-size:22px; color:#5E5E68; margin-left:8px;">km</span></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:24px; padding:22px 0;">
+        <div style="width:150px; flex:none; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em;">NUMERIC TABLE<br>JB Mono 500 · 15</div>
+        <div style="font-family:'JetBrains Mono'; font-weight:500; font-size:15px; color:#ECECEF; font-variant-numeric:tabular-nums; display:flex; gap:28px;"><span>4:38 /km</span><span>158 bpm</span><span>+312 m</span><span>01:58:04</span></div>
+      </div>
+    </section>
+
+    <!-- ===== COMPONENTS ===== -->
+    <section>
+      <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.16em; text-transform:uppercase; padding-bottom:16px; border-bottom:1px solid #1C1C22; margin-bottom:36px;">04 — Component primitives</div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px 40px;">
+
+        <!-- STAT CARD -->
+        <div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">STAT CARD</div>
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; padding:24px;">
+            <div style="font-family:'Inter'; font-weight:500; font-size:12px; color:#9C9CA6; letter-spacing:0.12em; text-transform:uppercase;">This week · Distance</div>
+            <div style="display:flex; align-items:baseline; gap:8px; margin-top:16px;">
+              <span style="font-family:'JetBrains Mono'; font-weight:500; font-size:52px; letter-spacing:-0.02em; line-height:1; font-variant-numeric:tabular-nums;">42.6</span>
+              <span style="font-family:'JetBrains Mono'; font-size:18px; color:#5E5E68;">km</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; margin-top:16px; font-family:'JetBrains Mono'; font-size:13px; color:#C4F82A;">
+              <span style="font-size:11px;">▲</span>12.4%<span style="color:#5E5E68;">vs last week</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHART CONTAINER -->
+        <div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">CHART CONTAINER</div>
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; padding:20px 22px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+              <div style="font-family:'Inter'; font-weight:600; font-size:15px;">Weekly volume</div>
+              <div style="display:flex; align-items:center; gap:7px; font-family:'JetBrains Mono'; font-size:11px; color:#9C9CA6;"><span style="width:14px; height:3px; background:#C4F82A; border-radius:2px;"></span>Distance (km)</div>
+            </div>
+            <div style="position:relative; height:120px; border-left:1px solid #26262E; border-bottom:1px solid #26262E;">
+              <div style="position:absolute; inset:0 0 0 0; background:repeating-linear-gradient(to top, transparent, transparent 29px, #1A1A20 29px, #1A1A20 30px);"></div>
+              <svg viewBox="0 0 300 120" preserveAspectRatio="none" style="position:absolute; inset:0; width:100%; height:100%;">
+                <polyline points="0,88 43,72 86,80 129,54 172,60 215,34 258,40 300,18" fill="none" stroke="#C4F82A" stroke-width="2" vector-effect="non-scaling-stroke"/>
+              </svg>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:8px; font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68;"><span>W1</span><span>W4</span><span>W8</span><span>W12</span></div>
+          </div>
+        </div>
+
+        <!-- DATA TABLE -->
+        <div style="grid-column:span 2;">
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">DATA TABLE ROW</div>
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; overflow:hidden;">
+            <div style="display:grid; grid-template-columns:120px 90px 1fr 110px 110px 90px; padding:12px 22px; border-bottom:1px solid #26262E; font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.06em; text-transform:uppercase;">
+              <span>Date</span><span>Type</span><span>Title</span><span style="text-align:right;">Distance</span><span style="text-align:right;">Avg pace</span><span style="text-align:right;">Avg HR</span>
+            </div>
+            <div style="display:grid; grid-template-columns:120px 90px 1fr 110px 110px 90px; padding:15px 22px; align-items:center; border-bottom:1px solid #17171D; font-size:14px;">
+              <span style="font-family:'JetBrains Mono'; color:#9C9CA6; font-size:13px;">Jul 11</span>
+              <span><span style="display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono'; font-size:11px; color:#C7C7CE; background:#1E1E26; border:1px solid #2C2C36; border-radius:20px; padding:3px 9px;"><span style="width:6px; height:6px; border-radius:50%; background:#7FB2E8;"></span>Run</span></span>
+              <span style="color:#ECECEF;">Morning tempo along the river</span>
+              <span style="font-family:'JetBrains Mono'; text-align:right; font-variant-numeric:tabular-nums;">12.4 km</span>
+              <span style="font-family:'JetBrains Mono'; text-align:right; font-variant-numeric:tabular-nums;">4:38</span>
+              <span style="font-family:'JetBrains Mono'; text-align:right; font-variant-numeric:tabular-nums;">158</span>
+            </div>
+            <div style="display:grid; grid-template-columns:120px 90px 1fr 110px 110px 90px; padding:15px 22px; align-items:center; background:#1A1A21; font-size:14px;">
+              <span style="font-family:'JetBrains Mono'; color:#9C9CA6; font-size:13px;">Jul 09</span>
+              <span><span style="display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono'; font-size:11px; color:#C7C7CE; background:#1E1E26; border:1px solid #2C2C36; border-radius:20px; padding:3px 9px;"><span style="width:6px; height:6px; border-radius:50%; background:#C9A46B;"></span>Gym</span></span>
+              <span style="color:#ECECEF;">Lower body — squat 5×5</span>
+              <span style="font-family:'JetBrains Mono'; text-align:right; color:#5E5E68;">—</span>
+              <span style="font-family:'JetBrains Mono'; text-align:right; color:#5E5E68;">—</span>
+              <span style="font-family:'JetBrains Mono'; text-align:right; font-variant-numeric:tabular-nums;">121</span>
+            </div>
+            <div style="font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68; padding:9px 22px; border-top:1px solid #17171D;">↑ second row shows hover / active fill (#1A1A21)</div>
+          </div>
+        </div>
+
+        <!-- SIDEBAR NAV -->
+        <div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">SIDEBAR NAV ITEM</div>
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; padding:14px;">
+            <!-- default -->
+            <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:9px; position:relative;">
+              <span style="width:16px; height:16px; border:1.5px solid #5E5E68; border-radius:4px;"></span>
+              <span style="font-family:'Inter'; font-weight:500; font-size:14px; color:#9C9CA6;">Activities</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:10px; color:#3A3A42;">default</span>
+            </div>
+            <!-- hover -->
+            <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:9px; background:#1E1E26; position:relative;">
+              <span style="width:16px; height:16px; border:1.5px solid #9C9CA6; border-radius:4px;"></span>
+              <span style="font-family:'Inter'; font-weight:500; font-size:14px; color:#ECECEF;">Activities</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:10px; color:#5E5E68;">hover</span>
+            </div>
+            <!-- active -->
+            <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:9px; background:#1E1E26; position:relative; margin-top:2px;">
+              <span style="position:absolute; left:0; top:9px; bottom:9px; width:3px; border-radius:2px; background:#C4F82A;"></span>
+              <span style="width:16px; height:16px; border:1.5px solid #C4F82A; border-radius:4px;"></span>
+              <span style="font-family:'Inter'; font-weight:600; font-size:14px; color:#ECECEF;">Activities</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:10px; color:#C4F82A;">active</span>
+            </div>
+            <!-- coming soon nav variant -->
+            <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:9px; opacity:0.45;">
+              <span style="width:16px; height:16px; border:1.5px solid #5E5E68; border-radius:4px;"></span>
+              <span style="font-family:'Inter'; font-weight:500; font-size:14px; color:#9C9CA6;">Best Efforts</span>
+              <span style="margin-left:auto; font-family:'JetBrains Mono'; font-size:9px; color:#5E5E68; letter-spacing:0.1em; border:1px solid #2C2C36; border-radius:20px; padding:2px 7px;">SOON</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUTTONS + PILLS -->
+        <div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">BUTTONS &amp; PILLS</div>
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; padding:24px; display:flex; flex-direction:column; gap:20px;">
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <button style="font-family:'Inter'; font-weight:600; font-size:14px; color:#0B0B0F; background:#C4F82A; border:none; border-radius:9px; padding:11px 20px; cursor:pointer;">Import data</button>
+              <button style="font-family:'Inter'; font-weight:500; font-size:14px; color:#ECECEF; background:transparent; border:1px solid #33333D; border-radius:9px; padding:11px 20px; cursor:pointer;">View all</button>
+              <button style="font-family:'Inter'; font-weight:500; font-size:14px; color:#5E5E68; background:transparent; border:1px solid #22222A; border-radius:9px; padding:11px 20px; cursor:not-allowed;">Disabled</button>
+            </div>
+            <div style="height:1px; background:#22222A;"></div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <span style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono'; font-size:12px; color:#C7C7CE; background:#1E1E26; border:1px solid #2C2C36; border-radius:20px; padding:5px 12px;"><span style="width:7px; height:7px; border-radius:50%; background:#7FB2E8;"></span>Run</span>
+              <span style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono'; font-size:12px; color:#C7C7CE; background:#1E1E26; border:1px solid #2C2C36; border-radius:20px; padding:5px 12px;"><span style="width:7px; height:7px; border-radius:50%; background:#8FD1B0;"></span>Ride</span>
+              <span style="display:inline-flex; align-items:center; gap:7px; font-family:'JetBrains Mono'; font-size:12px; color:#C7C7CE; background:#1E1E26; border:1px solid #2C2C36; border-radius:20px; padding:5px 12px;"><span style="width:7px; height:7px; border-radius:50%; background:#C9A46B;"></span>Gym</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">EMPTY STATE</div>
+          <div style="background:#16161C; border:1px solid #22222A; border-radius:14px; padding:40px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px; min-height:230px; justify-content:center;">
+            <div style="width:44px; height:44px; border:1.5px solid #33333D; border-radius:10px; display:flex; align-items:center; justify-content:center;"><span style="width:14px; height:14px; border:1.5px solid #5E5E68; border-radius:3px;"></span></div>
+            <div style="font-family:'Inter'; font-weight:600; font-size:17px; color:#ECECEF;">No activities yet</div>
+            <div style="font-family:'Inter'; font-size:13px; color:#9C9CA6; max-width:280px; line-height:1.55;">Import an Apple Health export or drop in .gpx files to start analysing your training.</div>
+            <button style="font-family:'Inter'; font-weight:600; font-size:13px; color:#0B0B0F; background:#C4F82A; border:none; border-radius:8px; padding:10px 18px; cursor:pointer; margin-top:4px;">Import data</button>
+          </div>
+        </div>
+
+        <!-- COMING SOON -->
+        <div>
+          <div style="font-family:'JetBrains Mono'; font-size:11px; color:#5E5E68; letter-spacing:0.08em; margin-bottom:12px;">COMING SOON STATE</div>
+          <div style="background:#101015; border:1px dashed #2C2C36; border-radius:14px; padding:40px 32px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px; min-height:230px; justify-content:center;">
+            <span style="font-family:'JetBrains Mono'; font-size:10px; color:#C4F82A; letter-spacing:0.16em; border:1px solid rgba(196,248,42,0.35); background:rgba(196,248,42,0.06); border-radius:20px; padding:5px 12px;">COMING SOON</span>
+            <div style="font-family:'Inter'; font-weight:600; font-size:17px; color:#9C9CA6;">Training Load</div>
+            <div style="font-family:'Inter'; font-size:13px; color:#5E5E68; max-width:280px; line-height:1.55;">Acute vs. chronic load and fitness/fatigue balance. Planned for a later phase — the nav slot is reserved.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

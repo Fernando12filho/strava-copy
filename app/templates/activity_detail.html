@@ -1,134 +1,133 @@
 {% extends "base.html" %}
-{% block title %}{{ activity.activity_type }}{% endblock %}
+{% block title %}{{ display_title }}{% endblock %}
+{% block page_title %}{% endblock %}
+{% block topbar_left %}
+<div class="breadcrumb">
+  <a href="{{ url_for('main.activity_list') }}">← Activities</a>
+  <span class="sep">/</span>
+  <span class="current">{{ activity.start_time.strftime('%b %d, %Y') }}</span>
+</div>
+{% endblock %}
+
 {% block content %}
-<div data-activity-id="{{ activity.id }}">
-  <h1>{{ activity.activity_type }} — {{ activity.start_time.strftime("%Y-%m-%d %H:%M") }}</h1>
+<div class="container" data-activity-id="{{ activity.id }}">
 
-  <div class="card-grid">
-    <div class="card">
-      <div class="stat-label">Distance</div>
-      <div class="stat-value">{{ "%.2f"|format(activity.distance_meters / 1000) }} km</div>
+  <div class="title-block">
+    <div>
+      <div class="title-block-meta">
+        <span class="type-pill lg"><span class="type-dot" style="background:{{ category.dot }};"></span><span class="type-label">{{ category.label }}</span></span>
+        <span class="meta-text">{{ activity.start_time.strftime('%b %d, %Y · %H:%M') }}{{ ' · ' ~ activity.source_device if activity.source_device }}</span>
+      </div>
+      <div class="page-title">{{ display_title }}</div>
     </div>
-    <div class="card">
-      <div class="stat-label">Duration</div>
-      <div class="stat-value">{{ (activity.duration_seconds / 60) | round | int }} min</div>
-    </div>
-    <div class="card">
-      <div class="stat-label">Avg HR</div>
-      <div class="stat-value">{{ "%.0f"|format(activity.avg_hr) if activity.avg_hr is not none else "—" }}</div>
-    </div>
-    <div class="card">
-      <div class="stat-label">Max HR</div>
-      <div class="stat-value">{{ "%.0f"|format(activity.max_hr) if activity.max_hr is not none else "—" }}</div>
-    </div>
-    <div class="card">
-      <div class="stat-label">Elevation Gain</div>
-      <div class="stat-value">{{ "%.0f"|format(activity.elevation_gain_meters) if activity.elevation_gain_meters is not none else "—" }} m</div>
+    <div class="title-block-actions">
+      <span class="btn btn-secondary is-disabled" title="Coming soon">Edit</span>
+      <span class="btn btn-secondary is-disabled" title="Coming soon">Export .gpx</span>
     </div>
   </div>
 
-  <div class="card">
-    <div class="stat-label">Heart Rate</div>
-    <canvas id="hr-chart"></canvas>
-  </div>
-  <div class="card">
-    <div class="stat-label">Pace</div>
-    <canvas id="pace-chart"></canvas>
-  </div>
-  <div class="card">
-    <div class="stat-label">Elevation</div>
-    <canvas id="elevation-chart"></canvas>
+  <div class="summary-strip">
+    <div class="summary-cell">
+      <div class="summary-cell-label">Distance</div>
+      <div class="summary-cell-value"><span class="value mono">{{ '%.1f'|format(activity.distance_meters / 1000) if activity.distance_meters else '—' }}</span><span class="unit">km</span></div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-cell-label">Duration</div>
+      <div class="summary-cell-value"><span class="value mono">{{ activity.duration_seconds | format_duration }}</span></div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-cell-label">Avg pace</div>
+      <div class="summary-cell-value"><span class="value mono">{{ (avg_pace_seconds | format_pace) or '—' }}</span><span class="unit">/km</span></div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-cell-label">Avg HR</div>
+      <div class="summary-cell-value"><span class="value mono">{{ activity.avg_hr | round | int if activity.avg_hr is not none else '—' }}</span><span class="unit">bpm</span></div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-cell-label">Max HR</div>
+      <div class="summary-cell-value"><span class="value mono">{{ activity.max_hr | round | int if activity.max_hr is not none else '—' }}</span><span class="unit">bpm</span></div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-cell-label">Elev gain</div>
+      <div class="summary-cell-value"><span class="value mono">{{ '%+d'|format(activity.elevation_gain_meters | round | int) if activity.elevation_gain_meters is not none else '—' }}</span><span class="unit">m</span></div>
+    </div>
   </div>
 
-  {% if splits %}
-  <div class="card">
-    <div class="stat-label">Splits</div>
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Distance (m)</th>
-          <th>Duration (s)</th>
-          <th>Pace /km</th>
-          <th>Grade-Adjusted Pace /km</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for split in splits %}
-        <tr data-split-index="{{ loop.index0 }}">
-          <td>{{ loop.index }}</td>
-          <td>{{ "%.0f"|format(split.distance_meters) }}</td>
-          <td>{{ "%.0f"|format(split.duration_seconds) }}</td>
-          <td>{{ "%.1f"|format(split.pace_per_km_seconds / 60) }} min/km</td>
-          <td>
-            {% if split.grade_adjusted_pace_seconds %}
-              {{ "%.1f"|format(split.grade_adjusted_pace_seconds / 60) }} min/km
-            {% else %}
-              —
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  {% if is_pace_based %}
+  <div class="detail-grid">
+    <div class="card map-card">
+      <div class="card-header"><div class="title">Route</div><span class="meta-text mono">{{ '%.1f'|format(activity.distance_meters / 1000) if activity.distance_meters else '—' }} km</span></div>
+      <div class="map-placeholder">
+        <div style="text-align:center;">
+          <div class="map-marker"><span class="dot"></span></div>
+          <div class="map-caption">GPS ROUTE · Leaflet / OSM</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card charts-card">
+      <div class="chart-row-label">PACE <span class="unit">min/km</span></div>
+      <div class="chart-row-body"><canvas id="paceChart"></canvas></div>
+      <div class="chart-row-divider"></div>
+      <div class="chart-row-label">HEART RATE <span class="unit">bpm</span></div>
+      <div class="chart-row-body"><canvas id="hrChart"></canvas></div>
+      <div class="chart-row-divider"></div>
+      <div class="chart-row-label muted">ELEVATION <span class="unit">m</span></div>
+      <div class="chart-row-body"><canvas id="elevChart"></canvas></div>
+    </div>
   </div>
   {% endif %}
+
+  {% if is_pace_based %}
+  <div class="detail-lower-grid">
+    <div class="card splits-card">
+      <div class="card-header"><div class="title">Splits <span class="sub">per kilometer</span></div></div>
+      <div class="splits-header-row">
+        <span>KM</span><span>Pace</span><span class="cell-right">HR</span><span class="cell-right">Elev</span><span class="cell-right">Time</span>
+      </div>
+      {% for s in splits %}
+      <div class="split-row" data-split-index="{{ loop.index0 }}">
+        <span class="split-km">{{ loop.index }}</span>
+        <div class="split-pace-cell">
+          <span class="split-pace-value {{ 'fastest' if s.is_fastest }}">{{ s.pace_per_km_seconds | format_pace }}</span>
+          <div class="split-bar-track"><div class="split-bar-fill {{ 'fastest' if s.is_fastest }}" style="width:{{ s.bar_pct }}%;"></div></div>
+        </div>
+        <span class="split-cell-right">{{ s.hr | round | int if s.hr is not none else '—' }}</span>
+        <span class="split-cell-right {{ 'muted' if s.elevation_change_meters is not none and s.elevation_change_meters < 0 }}">{{ '%+dm'|format(s.elevation_change_meters | round | int) if s.elevation_change_meters is not none else '—' }}</span>
+        <span class="split-cell-right muted">{{ s.duration_seconds | format_duration }}</span>
+      </div>
+      {% else %}
+      <div class="table-empty">No 1km splits recorded for this activity.</div>
+      {% endfor %}
+    </div>
+
+    <div class="card efforts-card">
+      <div class="card-header with-dot"><span class="status-dot"></span><div class="title">Best efforts</div><span class="meta-text mono" style="margin-left:auto;">in this activity</span></div>
+      <div class="efforts-list">
+        {% for e in efforts %}
+        <div class="effort-row">
+          <div><div class="effort-label">{{ e.label }}</div></div>
+          <div>
+            <div class="effort-value">{{ e.value }}</div>
+            {% if e.is_pr %}<div class="season-best-badge">SEASON BEST</div>{% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="effort-note">No standard distances covered in this activity.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
+{% endblock %}
 
+{% block scripts %}
+{% if is_pace_based %}
+<script src="{{ url_for('static', filename='activity-charts.js') }}"></script>
 <script>
-function computePaceSeries(times, distances) {
-  const known = [];
-  for (let i = 0; i < times.length; i++) {
-    if (distances[i] !== null && distances[i] !== undefined) {
-      known.push({ t: times[i], d: distances[i] });
-    }
-  }
-  const labels = [];
-  const paceMinPerKm = [];
-  for (let i = 1; i < known.length; i++) {
-    const dt = known[i].t - known[i - 1].t;
-    const dd = known[i].d - known[i - 1].d;
-    if (dd > 0) {
-      labels.push(known[i].t);
-      paceMinPerKm.push(dt / (dd / 1000) / 60);
-    }
-  }
-  return { labels, paceMinPerKm };
-}
-
-async function loadStream() {
-  const response = await fetch("{{ url_for('main.activity_stream', activity_id=activity.id) }}");
-  const stream = await response.json();
-
-  new Chart(document.getElementById("hr-chart"), {
-    type: "line",
-    data: {
-      labels: stream.time,
-      datasets: [{ label: "HR (bpm)", data: stream.hr, spanGaps: true }],
-    },
-  });
-
-  const pace = computePaceSeries(stream.time, stream.distance);
-  new Chart(document.getElementById("pace-chart"), {
-    type: "line",
-    data: {
-      labels: pace.labels,
-      datasets: [{ label: "Pace (min/km)", data: pace.paceMinPerKm, spanGaps: true }],
-    },
-    options: {
-      scales: { y: { reverse: true } },
-    },
-  });
-
-  new Chart(document.getElementById("elevation-chart"), {
-    type: "line",
-    data: {
-      labels: stream.time,
-      datasets: [{ label: "Elevation (m)", data: stream.elevation, spanGaps: true }],
-    },
-  });
-}
-
-loadStream();
+  initActivityCharts("{{ url_for('main.activity_stream', activity_id=activity.id) }}");
 </script>
+{% endif %}
 {% endblock %}
