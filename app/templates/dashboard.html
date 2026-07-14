@@ -26,7 +26,7 @@
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-label">This week · Distance</div>
-      <div class="stat-value-row"><span class="stat-value">{{ '%.1f'|format(weekly_distance_km) }}</span><span class="stat-unit">km</span></div>
+      <div class="stat-value-row"><span class="stat-value">{{ '%.1f'|format(weekly_distance_value) }}</span><span class="stat-unit">{{ dist_unit }}</span></div>
       {{ stat_delta(weekly_distance_delta, true, 'vs last week') }}
     </div>
     <div class="stat-card">
@@ -79,7 +79,7 @@
     <div class="card-header">
       <div>
         <div class="card-title">Weekly volume</div>
-        <div class="card-subtitle">Last 12 weeks · kilometers</div>
+        <div class="card-subtitle">Last 12 weeks · {{ weekly_volume_unit_label }}</div>
       </div>
       <div class="chart-legend"><span class="swatch"></span>Distance</div>
     </div>
@@ -144,7 +144,8 @@
   initWeeklyVolumeChart(
     "weekly-volume-chart",
     {{ range(1, weekly_volume|length + 1) | list | tojson }}.map((n) => "W" + n),
-    {{ weekly_volume | tojson }}
+    {{ weekly_volume | tojson }},
+    "{{ dist_unit }}"
   );
 </script>
 {% endif %}

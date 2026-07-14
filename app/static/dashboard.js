@@ -1,4 +1,4 @@
-function initWeeklyVolumeChart(canvasId, labels, data) {
+function initWeeklyVolumeChart(canvasId, labels, data, distUnit) {
   const el = document.getElementById(canvasId);
   if (!el) return;
 
@@ -32,7 +32,7 @@ function initWeeklyVolumeChart(canvasId, labels, data) {
           titleFont: { family: "'JetBrains Mono'" },
           padding: 10,
           displayColors: false,
-          callbacks: { label: (c) => c.parsed.y + " km" },
+          callbacks: { label: (c) => c.parsed.y + " " + distUnit },
         },
       },
       scales: {

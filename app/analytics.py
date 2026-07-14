@@ -71,7 +71,7 @@ def km_splits(times, distances, split_meters=1000.0):
             {
                 "distance_meters": split_meters,
                 "duration_seconds": crossing_time - prev_time,
-                "pace_per_km_seconds": (crossing_time - prev_time) / (split_meters / 1000.0),
+                "pace_per_km_seconds": crossing_time - prev_time,
             }
         )
         prev_time = crossing_time
@@ -85,7 +85,7 @@ def km_splits(times, distances, split_meters=1000.0):
             {
                 "distance_meters": remainder,
                 "duration_seconds": end_time - prev_time,
-                "pace_per_km_seconds": (end_time - prev_time) / (remainder / 1000.0),
+                "pace_per_km_seconds": (end_time - prev_time) / (remainder / split_meters),
             }
         )
     return splits
@@ -146,6 +146,45 @@ def coalesce_stream_metric(times, values):
         return [], []
     ts, vs = zip(*pairs)
     return list(ts), list(vs)
+
+
+METERS_PER_MILE = 1609.344
+FEET_PER_METER = 3.28084
+LB_PER_KG = 2.20462262
+
+
+def convert_distance(meters, units):
+    if units == "imperial":
+        return meters / METERS_PER_MILE, "mi"
+    return meters / 1000, "km"
+
+
+def convert_pace(seconds_per_km, units):
+    if units == "imperial":
+        return seconds_per_km * (METERS_PER_MILE / 1000), "mi"
+    return seconds_per_km, "km"
+
+
+def convert_elevation(meters, units):
+    if units == "imperial":
+        return meters * FEET_PER_METER, "ft"
+    return meters, "m"
+
+
+def convert_weight(kg, units):
+    if units == "imperial":
+        return kg * LB_PER_KG, "lb"
+    return kg, "kg"
+
+
+def split_distance_meters(units):
+    return METERS_PER_MILE if units == "imperial" else 1000.0
+
+
+def weight_to_kg(value, units):
+    if units == "imperial":
+        return value / LB_PER_KG
+    return value
 
 
 def elevation_gain_from_stream(times, elevations):

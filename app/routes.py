@@ -43,23 +43,30 @@ def _detail_page_title(activity):
     return f"{label} · {activity.start_time.strftime('%b %d, %Y')}"
 
 
+def _get_units(settings):
+    return settings.units if settings and settings.units else "metric"
+
+
 def _avg_pace_seconds(activity):
     if not activity.distance_meters:
         return None
     return activity.duration_seconds / (activity.distance_meters / 1000)
 
 
-def _activity_row(activity):
+def _activity_row(activity, units="metric"):
     cat = analytics.categorize_activity_type(activity.activity_type)
+    dist_value, dist_unit = analytics.convert_distance(activity.distance_meters, units) if activity.distance_meters else (None, None)
+    pace_seconds = _avg_pace_seconds(activity)
+    pace_value, _pace_unit = analytics.convert_pace(pace_seconds, units) if pace_seconds is not None else (None, None)
     return {
         "id": activity.id,
         "date": activity.start_time.strftime("%b %d"),
         "type": cat["label"],
         "dot": cat["dot"],
         "title": _display_title(activity),
-        "dist": f"{activity.distance_meters / 1000:.1f} km" if activity.distance_meters else "—",
+        "dist": f"{dist_value:.1f} {dist_unit}" if dist_value is not None else "—",
         "dur": analytics.format_duration(activity.duration_seconds),
-        "pace": analytics.format_pace(_avg_pace_seconds(activity)) or "—",
+        "pace": analytics.format_pace(pace_value) or "—",
         "hr": f"{activity.avg_hr:.0f}" if activity.avg_hr is not None else "—",
     }
 
@@ -93,6 +100,7 @@ SORT_COLUMNS = [("date", "Date"), ("title", "Title"), ("dist", "Distance"), ("du
 @bp.route("/activities")
 def activity_list():
     db = get_db()
+    units = _get_units(db.query(UserSettings).first())
     query = db.query(Activity)
 
     date_from = request.args.get("from")
@@ -131,7 +139,7 @@ def activity_list():
     start = (page - 1) * ACTIVITIES_PER_PAGE
     page_activities = activities[start : start + ACTIVITIES_PER_PAGE]
 
-    rows = [{**_activity_row(a)} for a in page_activities]
+    rows = [{**_activity_row(a, units)} for a in page_activities]
 
     active_type = activity_type or "All"
     type_filters = [
@@ -166,12 +174,12 @@ def activity_list():
     )
 
 
-def _compute_splits(stream_data):
+def _compute_splits(stream_data, split_meters=1000.0):
     times, distances = analytics.coalesce_stream_metric(stream_data["time"], stream_data["distance"])
     if len(times) < 2:
         return []
 
-    splits = analytics.km_splits(times, distances)
+    splits = analytics.km_splits(times, distances, split_meters=split_meters)
 
     elev_times, elevations = analytics.coalesce_stream_metric(
         stream_data["time"], stream_data.get("elevation", [])
@@ -193,6 +201,16 @@ def _compute_splits(stream_data):
             split["elevation_change_meters"] = None
         split["hr"] = analytics.value_at_time(hr_times, hr_values, cumulative_time) if hr_times else None
         prev_elevation = curr_elevation
+    return splits
+
+
+def _convert_splits_for_display(splits, units):
+    for split in splits:
+        if split["elevation_change_meters"] is not None:
+            value, _unit = analytics.convert_elevation(split["elevation_change_meters"], units)
+            split["elevation_change_display"] = value
+        else:
+            split["elevation_change_display"] = None
     return splits
 
 
@@ -219,6 +237,7 @@ def activity_detail(activity_id):
     if activity is None:
         return "Activity not found", 404
 
+    units = _get_units(db.query(UserSettings).first())
     category = analytics.categorize_activity_type(activity.activity_type)
     # Splits/best-efforts/pace are a running concept — Apple Health streams for
     # non-running workouts (e.g. Volleyball) can carry stray incidental distance
@@ -229,18 +248,40 @@ def activity_detail(activity_id):
     splits = []
     efforts = []
     if stream is not None and is_pace_based:
-        splits = analytics.annotate_splits_for_display(_compute_splits(stream.stream_data))
+        split_meters = analytics.split_distance_meters(units)
+        splits = _convert_splits_for_display(
+            analytics.annotate_splits_for_display(_compute_splits(stream.stream_data, split_meters)), units
+        )
         efforts = _activity_own_best_efforts(db, activity, stream.stream_data)
+
+    dist_value, dist_unit = (
+        analytics.convert_distance(activity.distance_meters, units) if activity.distance_meters else (None, None)
+    )
+    pace_seconds = _avg_pace_seconds(activity) if is_pace_based else None
+    pace_value, pace_unit = analytics.convert_pace(pace_seconds, units) if pace_seconds is not None else (None, None)
+    elev_value, elev_unit = (
+        analytics.convert_elevation(activity.elevation_gain_meters, units)
+        if activity.elevation_gain_meters is not None
+        else (None, None)
+    )
 
     return render_template(
         "activity_detail.html",
         activity=activity,
         display_title=_detail_page_title(activity),
         category=category,
-        avg_pace_seconds=_avg_pace_seconds(activity) if is_pace_based else None,
         splits=splits,
         efforts=efforts,
         is_pace_based=is_pace_based,
+        units=units,
+        dist_value=dist_value,
+        dist_unit=dist_unit or "km",
+        pace_value=pace_value,
+        pace_unit=pace_unit or "km",
+        elev_value=elev_value,
+        elev_unit=elev_unit or "m",
+        split_unit_label="mile" if units == "imperial" else "kilometer",
+        split_col_label="MI" if units == "imperial" else "KM",
     )
 
 
@@ -336,13 +377,13 @@ def settings_page():
         resting_hr = request.form.get("resting_hr")
         max_hr = request.form.get("max_hr")
         birth_year = request.form.get("birth_year")
-        weight_kg = request.form.get("weight_kg")
-        units = request.form.get("units")
+        weight_input = request.form.get("weight_kg")
+        units = request.form.get("units") or "metric"
         settings.resting_hr = int(resting_hr) if resting_hr else None
         settings.max_hr = int(max_hr) if max_hr else None
         settings.birth_year = int(birth_year) if birth_year else None
-        settings.weight_kg = float(weight_kg) if weight_kg else None
-        settings.units = units or None
+        settings.weight_kg = analytics.weight_to_kg(float(weight_input), units) if weight_input else None
+        settings.units = units
         db.commit()
         if request.headers.get("X-Requested-With") == "fetch":
             return "", 204
@@ -356,6 +397,11 @@ def settings_page():
     if path.exists():
         db_size_mb = path.stat().st_size / (1024 * 1024)
 
+    units = _get_units(settings)
+    weight_value, weight_unit = (
+        analytics.convert_weight(settings.weight_kg, units) if settings and settings.weight_kg else (None, "kg" if units == "metric" else "lb")
+    )
+
     return render_template(
         "settings.html",
         settings=settings,
@@ -363,6 +409,9 @@ def settings_page():
         zones=analytics.hr_zone_bands(resolved_max_hr),
         db_path=db_path,
         db_size_mb=db_size_mb,
+        units=units,
+        weight_value=weight_value,
+        weight_unit=weight_unit,
     )
 
 
@@ -407,6 +456,7 @@ def dashboard():
     last_week_duration = sum(a.duration_seconds for a in last_week)
 
     settings = db.query(UserSettings).first()
+    units = _get_units(settings)
     resting_hr, max_hr = _resolve_hr_profile(settings, today)
 
     daily_totals = {}
@@ -432,12 +482,14 @@ def dashboard():
     calendar = analytics.calendar_levels(daily_totals, calendar_start, today)
     streak = analytics.current_streak(calendar)
 
+    dist_unit = analytics.convert_distance(0.0, units)[1]
     weekly_volume = []
     for weeks_back in range(WEEKLY_VOLUME_WEEKS - 1, -1, -1):
         week_end = today - timedelta(days=7 * weeks_back)
         week_start = week_end - timedelta(days=6)
-        total_km = sum(a.distance_meters for a in activities if week_start <= a.start_time.date() <= week_end) / 1000
-        weekly_volume.append(round(total_km, 1))
+        total_meters = sum(a.distance_meters for a in activities if week_start <= a.start_time.date() <= week_end)
+        total_value, _unit = analytics.convert_distance(total_meters, units)
+        weekly_volume.append(round(total_value, 1))
 
     weekly_loads = defaultdict(float)
     for day, load in daily_totals.items():
@@ -449,7 +501,7 @@ def dashboard():
         best_week_load = 0.0
         best_week_label = "—"
 
-    recent = [_activity_row(a) for a in list(reversed(activities))[:5]]
+    recent = [_activity_row(a, units) for a in list(reversed(activities))[:5]]
 
     best_efforts = db.query(BestEffort).order_by(BestEffort.distance_meters.asc()).all()
     five_k = next((be for be in best_efforts if be.distance_label == "5K"), None)
@@ -475,22 +527,25 @@ def dashboard():
             }
         )
     if longest_run:
+        longest_value, longest_unit = analytics.convert_distance(longest_run.distance_meters, units)
         recent_prs.append(
             {
                 "label": "Longest run",
-                "value": f"{longest_run.distance_meters / 1000:.1f} km",
+                "value": f"{longest_value:.1f} {longest_unit}",
                 "date": longest_run.start_time.strftime("%b %d, %Y"),
             }
         )
     recent_prs.append({"label": "Highest weekly load", "value": f"{best_week_load:.0f}", "date": best_week_label})
 
     last_import = max((a.created_at for a in activities if a.created_at), default=None)
+    weekly_distance_value, _unit = analytics.convert_distance(this_week_distance, units)
 
     return render_template(
         "dashboard.html",
         has_data=has_data,
         last_import=last_import,
-        weekly_distance_km=this_week_distance / 1000,
+        weekly_distance_value=weekly_distance_value,
+        dist_unit=dist_unit,
         weekly_distance_delta=_pct_delta(this_week_distance, last_week_distance),
         weekly_duration_hours=this_week_duration / 3600,
         weekly_duration_delta=_pct_delta(this_week_duration, last_week_duration),
@@ -503,6 +558,7 @@ def dashboard():
         calendar_start=calendar_start,
         calendar_end=today,
         weekly_volume=weekly_volume,
+        weekly_volume_unit_label="miles" if units == "imperial" else "kilometers",
         recent=recent,
         recent_prs=recent_prs,
     )

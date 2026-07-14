@@ -94,11 +94,16 @@ function renderRoutePolyline(containerId, lats, lons) {
   el.style.backgroundImage = "none";
 }
 
-async function initActivityCharts(streamUrl) {
+async function initActivityCharts(streamUrl, units) {
   const response = await fetch(streamUrl);
   const stream = await response.json();
 
   renderRoutePolyline("route-map", stream.lat || [], stream.lon || []);
+
+  const isImperial = units === "imperial";
+  const distDivisor = isImperial ? 1609.344 : 1000;
+  const distUnit = isImperial ? "mi" : "km";
+  const feetPerMeter = 3.28084;
 
   const [distTimes, dists] = _coalesce(stream.time, stream.distance);
   if (distTimes.length < 2) return;
@@ -108,23 +113,27 @@ async function initActivityCharts(streamUrl) {
 
   const bucketCount = Math.max(1, Math.min(60, distTimes.length - 1));
   const bucketTimes = [];
-  const bucketDistKm = [];
+  const bucketDist = [];
   for (let i = 0; i <= bucketCount; i++) {
     const targetDist = dists[0] + (i / bucketCount) * (dists[dists.length - 1] - dists[0]);
     bucketTimes.push(_interpolate(dists, distTimes, targetDist));
-    bucketDistKm.push(targetDist / 1000);
+    bucketDist.push(targetDist / distDivisor);
   }
 
-  const paceLabels = bucketDistKm.slice(1);
+  const paceLabels = bucketDist.slice(1);
   const paceSeries = [];
   for (let i = 1; i <= bucketCount; i++) {
     const dt = bucketTimes[i] - bucketTimes[i - 1];
-    const dd = bucketDistKm[i] - bucketDistKm[i - 1];
+    const dd = bucketDist[i] - bucketDist[i - 1];
     paceSeries.push(dd > 0 ? dt / 60 / dd : null);
   }
 
   const hrSeries = bucketTimes.map((t) => _nearest(hrTimes, hrs, t));
-  const elevSeries = bucketTimes.map((t) => _nearest(elevTimes, elevs, t));
+  const elevSeries = bucketTimes.map((t) => {
+    const v = _nearest(elevTimes, elevs, t);
+    if (v === null || v === undefined) return null;
+    return isImperial ? v * feetPerMeter : v;
+  });
 
   const baseX = (labels, showTicks) => ({
     grid: { display: false },
@@ -134,7 +143,7 @@ async function initActivityCharts(streamUrl) {
       color: "#5E5E68",
       font: { family: "'JetBrains Mono'", size: 9 },
       maxTicksLimit: 8,
-      callback: (v, i) => labels[i].toFixed(1) + (i === labels.length - 1 ? " km" : ""),
+      callback: (v, i) => labels[i].toFixed(1) + (i === labels.length - 1 ? " " + distUnit : ""),
     },
   });
 
@@ -193,6 +202,6 @@ async function initActivityCharts(streamUrl) {
   };
 
   render("paceChart", paceLabels, paceSeries, "#C4F82A", false, false, _fmtClock);
-  render("hrChart", bucketDistKm, hrSeries, "#C4F82A", false, false, (v) => Math.round(v));
-  render("elevChart", bucketDistKm, elevSeries, "#6C6C78", true, true, (v) => Math.round(v));
+  render("hrChart", bucketDist, hrSeries, "#C4F82A", false, false, (v) => Math.round(v));
+  render("elevChart", bucketDist, elevSeries, "#6C6C78", true, true, (v) => Math.round(v));
 }

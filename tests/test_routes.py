@@ -15,6 +15,30 @@ def test_activity_list_returns_200(client, make_activity):
     assert response.status_code == 200
 
 
+def test_activity_list_shows_miles_when_units_imperial(client, make_activity, db_session):
+    from app.models import UserSettings
+
+    db_session.add(UserSettings(units="imperial"))
+    db_session.commit()
+    make_activity(distance_meters=5000.0, duration_seconds=1500)
+
+    response = client.get("/activities")
+
+    body = response.data.decode()
+    assert "3.1 mi" in body
+    assert "8:03" in body
+
+
+def test_activity_list_shows_km_when_units_metric_default(client, make_activity):
+    make_activity(distance_meters=5000.0, duration_seconds=1500)
+
+    response = client.get("/activities")
+
+    body = response.data.decode()
+    assert "5.0 km" in body
+    assert "5:00" in body
+
+
 def test_activity_list_filtered_by_type(client, make_activity):
     run = make_activity(activity_type="Run", dedup_key="run-key")
     walk = make_activity(activity_type="Walk", dedup_key="walk-key")
@@ -85,6 +109,43 @@ def test_activity_list_range_filters_last_30_days(client, make_activity):
     body = response.data.decode()
     assert f'data-activity-id="{recent.id}"' in body
     assert f'data-activity-id="{old.id}"' not in body
+
+
+def test_activity_detail_shows_imperial_units_in_summary(client, make_activity, db_session):
+    from app.models import UserSettings
+
+    db_session.add(UserSettings(units="imperial"))
+    db_session.commit()
+    activity = make_activity(distance_meters=5000.0, duration_seconds=1500, elevation_gain_meters=100.0)
+
+    response = client.get(f"/activities/{activity.id}")
+
+    body = response.data.decode()
+    assert "3.1" in body
+    assert "mi" in body
+    assert "328" in body
+    assert "ft" in body
+
+
+def test_activity_detail_splits_header_says_per_mile_when_imperial(client, make_activity, db_session):
+    from app.models import ActivityStream, UserSettings
+
+    db_session.add(UserSettings(units="imperial"))
+    db_session.commit()
+    activity = make_activity(duration_seconds=1500, distance_meters=5000.0)
+    times = [i * 300 for i in range(6)]
+    distances = [i * 1000.0 for i in range(6)]
+    db_session.add(
+        ActivityStream(
+            activity_id=activity.id,
+            stream_data={"time": times, "hr": [None] * 6, "distance": distances, "elevation": [], "pace": []},
+        )
+    )
+    db_session.commit()
+
+    response = client.get(f"/activities/{activity.id}")
+
+    assert "per mile" in response.data.decode()
 
 
 def test_activity_detail_returns_200_for_existing(client, make_activity):
@@ -254,6 +315,30 @@ def test_settings_page_get_returns_200(client):
     assert response.status_code == 200
 
 
+def test_settings_page_shows_weight_converted_to_pounds_when_imperial(client, db_session):
+    from app.models import UserSettings
+
+    db_session.add(UserSettings(weight_kg=72.0, units="imperial"))
+    db_session.commit()
+
+    response = client.get("/settings")
+
+    assert "158.7" in response.data.decode()
+
+
+def test_settings_page_post_converts_submitted_pounds_back_to_kg(client, db_session):
+    from app.models import UserSettings
+
+    response = client.post(
+        "/settings",
+        data={"resting_hr": "55", "max_hr": "185", "birth_year": "1990", "weight_kg": "158.73", "units": "imperial"},
+    )
+
+    assert response.status_code == 302
+    stored = db_session.query(UserSettings).one()
+    assert stored.weight_kg == pytest.approx(72.0, abs=0.01)
+
+
 def test_settings_page_post_creates_settings(client, db_session):
     from app.models import UserSettings
 
@@ -340,3 +425,22 @@ def test_dashboard_shows_populated_sections_when_activities_exist(client, make_a
     assert "Weekly volume" in body
     assert "Recent activities" in body
     assert "Recent PRs" in body
+
+
+def test_dashboard_shows_miles_unit_when_imperial(client, make_activity, db_session):
+    from datetime import date, datetime, timedelta
+
+    from app.models import UserSettings
+
+    db_session.add(UserSettings(units="imperial"))
+    db_session.commit()
+    today = date.today()
+    make_activity(
+        distance_meters=5000.0,
+        start_time=datetime.combine(today, datetime.min.time()),
+        end_time=datetime.combine(today, datetime.min.time()) + timedelta(minutes=30),
+    )
+
+    body = client.get("/dashboard").data.decode()
+
+    assert ">mi<" in body

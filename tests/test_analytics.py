@@ -94,6 +94,15 @@ def test_splits_partial_final_split_included():
     assert last["duration_seconds"] == pytest.approx(150.0)
 
 
+def test_km_splits_pace_normalized_to_split_unit_not_hardcoded_km():
+    times, distances = _constant_pace_stream(total_km=2, seconds_per_km=300)
+
+    splits = analytics.km_splits(times, distances, split_meters=1609.344)
+
+    assert splits[0]["duration_seconds"] == pytest.approx(482.8032, abs=0.01)
+    assert splits[0]["pace_per_km_seconds"] == pytest.approx(splits[0]["duration_seconds"], abs=0.001)
+
+
 # --- grade-adjusted pace -------------------------------------------------
 
 def test_grade_adjusted_pace_flat_same_as_raw():
@@ -341,3 +350,69 @@ def test_elevation_gain_from_stream_ignores_none_values():
 
 def test_elevation_gain_from_stream_empty_returns_zero():
     assert analytics.elevation_gain_from_stream([], []) == 0.0
+
+
+# --- unit conversion -------------------------------------------------------
+
+def test_convert_distance_metric_is_kilometers():
+    value, label = analytics.convert_distance(5000.0, "metric")
+    assert value == pytest.approx(5.0)
+    assert label == "km"
+
+
+def test_convert_distance_imperial_is_miles():
+    value, label = analytics.convert_distance(1609.344, "imperial")
+    assert value == pytest.approx(1.0)
+    assert label == "mi"
+
+
+def test_convert_pace_metric_passes_through():
+    value, label = analytics.convert_pace(300.0, "metric")
+    assert value == pytest.approx(300.0)
+    assert label == "km"
+
+
+def test_convert_pace_imperial_scales_to_per_mile():
+    value, label = analytics.convert_pace(300.0, "imperial")
+    assert value == pytest.approx(482.803, abs=0.01)
+    assert label == "mi"
+
+
+def test_convert_elevation_metric_is_meters():
+    value, label = analytics.convert_elevation(100.0, "metric")
+    assert value == pytest.approx(100.0)
+    assert label == "m"
+
+
+def test_convert_elevation_imperial_is_feet():
+    value, label = analytics.convert_elevation(100.0, "imperial")
+    assert value == pytest.approx(328.084, abs=0.01)
+    assert label == "ft"
+
+
+def test_convert_weight_metric_is_kilograms():
+    value, label = analytics.convert_weight(72.0, "metric")
+    assert value == pytest.approx(72.0)
+    assert label == "kg"
+
+
+def test_convert_weight_imperial_is_pounds():
+    value, label = analytics.convert_weight(72.0, "imperial")
+    assert value == pytest.approx(158.73, abs=0.01)
+    assert label == "lb"
+
+
+def test_split_distance_meters_metric_is_one_kilometer():
+    assert analytics.split_distance_meters("metric") == pytest.approx(1000.0)
+
+
+def test_split_distance_meters_imperial_is_one_mile():
+    assert analytics.split_distance_meters("imperial") == pytest.approx(1609.344)
+
+
+def test_weight_to_kg_metric_passes_through():
+    assert analytics.weight_to_kg(72.0, "metric") == pytest.approx(72.0)
+
+
+def test_weight_to_kg_imperial_converts_pounds_back():
+    assert analytics.weight_to_kg(158.73, "imperial") == pytest.approx(72.0, abs=0.01)

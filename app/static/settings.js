@@ -6,6 +6,9 @@ function initSettingsForm(postUrl) {
   const unitsInput = document.getElementById("units-input");
   const unitsButtons = document.querySelectorAll("#units-segmented .segmented-btn");
   const wipeForm = document.getElementById("wipe-form");
+  const weightInput = document.getElementById("weight-input");
+  const weightUnitLabel = document.getElementById("weight-unit-label");
+  const LB_PER_KG = 2.20462262;
 
   let saveTimer = null;
 
@@ -48,9 +51,26 @@ function initSettingsForm(postUrl) {
 
   unitsButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
+      const previousUnits = unitsInput.value;
+      const nextUnits = btn.dataset.units;
+      if (nextUnits === previousUnits) return;
+
       unitsButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      unitsInput.value = btn.dataset.units;
+      unitsInput.value = nextUnits;
+
+      if (weightInput && weightInput.value) {
+        const current = parseFloat(weightInput.value);
+        if (!isNaN(current)) {
+          const kg = previousUnits === "imperial" ? current / LB_PER_KG : current;
+          const converted = nextUnits === "imperial" ? kg * LB_PER_KG : kg;
+          weightInput.value = converted.toFixed(1);
+        }
+      }
+      if (weightUnitLabel) {
+        weightUnitLabel.textContent = nextUnits === "imperial" ? "lb" : "kg";
+      }
+
       markDirty();
     });
   });
