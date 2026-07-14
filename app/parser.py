@@ -8,7 +8,7 @@ from math import atan2, cos, radians, sin, sqrt
 import defusedxml.ElementTree as ET
 
 from app import analytics
-from app.models import Activity, ActivityStream, BestEffort
+from app.models import Activity, ActivityStream, BestEffort, UserSettings
 
 STANDARD_DISTANCES = [
     ("400m", 400.0),
@@ -32,6 +32,14 @@ ACTIVITY_TYPE_MAP = {"running": "Run", "walking": "Walk", "cycling": "Cycle"}
 RECORD_TYPES = {
     "HKQuantityTypeIdentifierHeartRate": "hr",
     "HKQuantityTypeIdentifierDistanceWalkingRunning": "distance",
+    "HKQuantityTypeIdentifierDistanceCycling": "distance",
+}
+
+# Newer Apple Health exports omit the totalDistance attribute on <Workout> and
+# report it instead as a child <WorkoutStatistics> sum.
+DISTANCE_STATISTIC_TYPES = {
+    "HKQuantityTypeIdentifierDistanceWalkingRunning",
+    "HKQuantityTypeIdentifierDistanceCycling",
 }
 
 GPX_NS = {
@@ -84,27 +92,54 @@ def _drop_overlapping_duplicates(windows):
 
 def _collect_workout_windows(xml_bytes):
     windows = []
+    me_attrs = {}
+    # WorkoutStatistics/FileReference end-events fire before their parent Workout's
+    # end-event, and every element is cleared immediately after being visited — so
+    # their data has to be stashed here and consumed when the enclosing Workout closes,
+    # not read back off the (by-then-cleared) parent afterward.
+    pending_distance_meters = None
+    pending_route_file = None
+
     for _, elem in ET.iterparse(io.BytesIO(xml_bytes), events=("end",)):
-        if elem.tag == "Workout":
+        tag = elem.tag
+        if tag == "Me":
+            birth_date = elem.get("HKCharacteristicTypeIdentifierDateOfBirth")
+            if birth_date:
+                me_attrs["birth_year"] = int(birth_date.split("-")[0])
+        elif tag == "WorkoutStatistics":
+            if elem.get("type") in DISTANCE_STATISTIC_TYPES:
+                pending_distance_meters = _to_meters(elem.get("sum"), elem.get("unit"))
+        elif tag == "FileReference":
+            path = elem.get("path")
+            if path and path.endswith(".gpx"):
+                pending_route_file = path.lstrip("/")
+        elif tag == "Workout":
             total_distance = elem.get("totalDistance")
+            if total_distance is not None:
+                distance_meters = _to_meters(total_distance, elem.get("totalDistanceUnit"))
+            elif pending_distance_meters is not None:
+                distance_meters = pending_distance_meters
+            else:
+                distance_meters = 0.0
+
             windows.append(
                 {
                     "activity_type": _normalize_activity_type(elem.get("workoutActivityType")),
                     "start_time": _parse_apple_date(elem.get("startDate")),
                     "end_time": _parse_apple_date(elem.get("endDate")),
                     "duration_seconds": _to_seconds(elem.get("duration"), elem.get("durationUnit")),
-                    "distance_meters": (
-                        _to_meters(total_distance, elem.get("totalDistanceUnit"))
-                        if total_distance is not None
-                        else 0.0
-                    ),
+                    "distance_meters": distance_meters,
+                    "source_device": elem.get("sourceName"),
+                    "route_file": pending_route_file,
                 }
             )
+            pending_distance_meters = None
+            pending_route_file = None
         elem.clear()
-    return _drop_overlapping_duplicates(windows)
+    return _drop_overlapping_duplicates(windows), me_attrs
 
 
-def _bucket_records(xml_bytes, windows):
+def _bucket_records(xml_bytes, windows, route_points_by_index=None):
     buckets = [{} for _ in windows]
     for _, elem in ET.iterparse(io.BytesIO(xml_bytes), events=("end",)):
         if elem.tag == "Record":
@@ -121,15 +156,39 @@ def _bucket_records(xml_bytes, windows):
                         break
         elem.clear()
 
+    if route_points_by_index:
+        for i, points in route_points_by_index.items():
+            for p in points:
+                entry = buckets[i].setdefault(p["elapsed"], {})
+                entry["lat"] = p["lat"]
+                entry["lon"] = p["lon"]
+                if p["elevation"] is not None:
+                    entry["elevation"] = p["elevation"]
+
     streams = []
     for bucket in buckets:
         times = sorted(bucket.keys())
+        # Apple Health distance records report the distance covered within that
+        # record's own interval, not a running odometer total — accumulate them so
+        # the stream matches the cumulative shape km_splits/best_effort expect
+        # (already true for GPX imports, which sum haversine legs as they go).
+        cumulative_distance = 0.0
+        distances = []
+        for t in times:
+            interval = bucket[t].get("distance")
+            if interval is None:
+                distances.append(None)
+            else:
+                cumulative_distance += interval
+                distances.append(cumulative_distance)
         streams.append(
             {
                 "time": times,
                 "hr": [bucket[t].get("hr") for t in times],
-                "distance": [bucket[t].get("distance") for t in times],
-                "elevation": [],
+                "distance": distances,
+                "elevation": [bucket[t].get("elevation") for t in times],
+                "lat": [bucket[t].get("lat") for t in times],
+                "lon": [bucket[t].get("lon") for t in times],
                 "pace": [],
             }
         )
@@ -137,7 +196,7 @@ def _bucket_records(xml_bytes, windows):
 
 
 def parse_apple_health_xml(xml_bytes):
-    windows = _collect_workout_windows(xml_bytes)
+    windows, _me_attrs = _collect_workout_windows(xml_bytes)
     streams = _bucket_records(xml_bytes, windows)
     for w, stream in zip(windows, streams):
         w["stream_data"] = stream
@@ -162,6 +221,7 @@ def _persist_activity(
     source,
     source_id,
     stream_data=None,
+    source_device=None,
 ):
     dedup_key = _make_dedup_key(activity_type, start_time, duration_seconds)
     existing = db_session.query(Activity).filter_by(dedup_key=dedup_key).first()
@@ -177,6 +237,7 @@ def _persist_activity(
         avg_hr=avg_hr,
         max_hr=max_hr,
         elevation_gain_meters=elevation_gain_meters,
+        source_device=source_device,
         source=source,
         source_id=source_id,
         dedup_key=dedup_key,
@@ -235,7 +296,20 @@ def _is_unsafe_zip_entry(name):
     return ".." in parts
 
 
-def _read_export_xml(zip_path):
+def _maybe_set_birth_year(db_session, me_attrs):
+    birth_year = me_attrs.get("birth_year")
+    if birth_year is None:
+        return
+    settings = db_session.query(UserSettings).first()
+    if settings is None:
+        settings = UserSettings()
+        db_session.add(settings)
+    if settings.birth_year is None:
+        settings.birth_year = birth_year
+        db_session.commit()
+
+
+def import_apple_health_zip(zip_path, db_session):
     with zipfile.ZipFile(zip_path) as zf:
         names = zf.namelist()
         for name in names:
@@ -244,17 +318,27 @@ def _read_export_xml(zip_path):
         export_name = next((n for n in names if n.endswith("export.xml")), None)
         if export_name is None:
             raise ValueError("export.xml not found in zip")
-        return zf.read(export_name)
+        export_dir = export_name.rsplit("/", 1)[0] if "/" in export_name else ""
+        xml_bytes = zf.read(export_name)
 
+        windows, me_attrs = _collect_workout_windows(xml_bytes)
 
-def import_apple_health_zip(zip_path, db_session):
-    xml_bytes = _read_export_xml(zip_path)
-    workouts = parse_apple_health_xml(xml_bytes)
+        route_points_by_index = {}
+        for i, w in enumerate(windows):
+            route_file = w.pop("route_file", None)
+            if not route_file:
+                continue
+            full_path = f"{export_dir}/{route_file}" if export_dir else route_file
+            if full_path in names:
+                route_points_by_index[i] = _parse_route_gpx(zf.read(full_path), w["start_time"])
+
+        streams = _bucket_records(xml_bytes, windows, route_points_by_index)
 
     imported = 0
     skipped = 0
-    for w in workouts:
-        hr_values = [v for v in w["stream_data"]["hr"] if v is not None]
+    for w, stream in zip(windows, streams):
+        hr_values = [v for v in stream["hr"] if v is not None]
+        has_elevation = any(v is not None for v in stream["elevation"])
         created = _persist_activity(
             db_session,
             activity_type=w["activity_type"],
@@ -264,15 +348,22 @@ def import_apple_health_zip(zip_path, db_session):
             distance_meters=w["distance_meters"],
             avg_hr=(sum(hr_values) / len(hr_values)) if hr_values else None,
             max_hr=max(hr_values) if hr_values else None,
-            elevation_gain_meters=None,
+            elevation_gain_meters=(
+                analytics.elevation_gain_from_stream(stream["time"], stream["elevation"])
+                if has_elevation
+                else None
+            ),
             source="apple_health",
             source_id=None,
-            stream_data=w["stream_data"],
+            source_device=w.get("source_device"),
+            stream_data=stream,
         )
         if created:
             imported += 1
         else:
             skipped += 1
+
+    _maybe_set_birth_year(db_session, me_attrs)
     return {"imported": imported, "skipped": skipped}
 
 
@@ -285,6 +376,26 @@ def _haversine(lat1, lon1, lat2, lon2):
 
 def _parse_gpx_time(raw):
     return datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_route_gpx(gpx_bytes, window_start_utc):
+    root = ET.fromstring(gpx_bytes)
+    points = []
+    for trkpt in root.findall(".//gpx:trkpt", GPX_NS):
+        time_el = trkpt.find("gpx:time", GPX_NS)
+        if time_el is None:
+            continue
+        ele_el = trkpt.find("gpx:ele", GPX_NS)
+        elapsed = int((_parse_gpx_time(time_el.text) - window_start_utc).total_seconds())
+        points.append(
+            {
+                "elapsed": elapsed,
+                "lat": float(trkpt.get("lat")),
+                "lon": float(trkpt.get("lon")),
+                "elevation": float(ele_el.text) if ele_el is not None else None,
+            }
+        )
+    return points
 
 
 def import_gpx(file_path, db_session):
@@ -335,6 +446,8 @@ def import_gpx(file_path, db_session):
         "hr": [p["hr"] for p in points],
         "distance": cumulative_distances,
         "elevation": [p["ele"] for p in points],
+        "lat": [p["lat"] for p in points],
+        "lon": [p["lon"] for p in points],
         "pace": [],
     }
 

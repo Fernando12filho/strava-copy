@@ -57,10 +57,10 @@
   <div class="detail-grid">
     <div class="card map-card">
       <div class="card-header"><div class="title">Route</div><span class="meta-text mono">{{ '%.1f'|format(activity.distance_meters / 1000) if activity.distance_meters else '—' }} km</span></div>
-      <div class="map-placeholder">
+      <div class="map-placeholder" id="route-map">
         <div style="text-align:center;">
           <div class="map-marker"><span class="dot"></span></div>
-          <div class="map-caption">GPS ROUTE · Leaflet / OSM</div>
+          <div class="map-caption">No GPS route recorded</div>
         </div>
       </div>
     </div>

@@ -47,9 +47,58 @@ function _fmtClock(v) {
   return m + ":" + String(s).padStart(2, "0");
 }
 
+function renderRoutePolyline(containerId, lats, lons) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  const points = [];
+  for (let i = 0; i < lats.length; i++) {
+    if (lats[i] !== null && lats[i] !== undefined && lons[i] !== null && lons[i] !== undefined) {
+      points.push([lats[i], lons[i]]);
+    }
+  }
+  if (points.length < 2) return;
+
+  const avgLat = points.reduce((sum, p) => sum + p[0], 0) / points.length;
+  const cosLat = Math.cos((avgLat * Math.PI) / 180);
+  const projected = points.map(([lat, lon]) => [lon * cosLat, lat]);
+
+  const xs = projected.map((p) => p[0]);
+  const ys = projected.map((p) => p[1]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const spanX = maxX - minX || 1;
+  const spanY = maxY - minY || 1;
+
+  const width = 400;
+  const height = 300;
+  const padding = 24;
+  const scale = Math.min((width - padding * 2) / spanX, (height - padding * 2) / spanY);
+  const offsetX = (width - spanX * scale) / 2;
+  const offsetY = (height - spanY * scale) / 2;
+
+  const pathPoints = projected
+    .map(([x, y]) => {
+      const px = offsetX + (x - minX) * scale;
+      const py = height - (offsetY + (y - minY) * scale);
+      return px.toFixed(1) + "," + py.toFixed(1);
+    })
+    .join(" ");
+
+  el.innerHTML =
+    '<svg viewBox="0 0 ' + width + " " + height + '" style="width:100%; height:100%;" preserveAspectRatio="xMidYMid meet">' +
+    '<polyline points="' + pathPoints + '" fill="none" stroke="#C4F82A" stroke-width="2.5" ' +
+    'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" /></svg>';
+  el.style.backgroundImage = "none";
+}
+
 async function initActivityCharts(streamUrl) {
   const response = await fetch(streamUrl);
   const stream = await response.json();
+
+  renderRoutePolyline("route-map", stream.lat || [], stream.lon || []);
 
   const [distTimes, dists] = _coalesce(stream.time, stream.distance);
   if (distTimes.length < 2) return;

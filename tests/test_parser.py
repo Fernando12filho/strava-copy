@@ -19,6 +19,33 @@ BILLION_LAUGHS_XML = b"""<?xml version="1.0"?>
 ]>
 <HealthData>&lol2;</HealthData>"""
 
+WORKOUT_STATISTICS_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30.0" durationUnit="min" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:30:00 -0700" sourceName="Fernando&#8217;s Apple Watch">
+  <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" sum="300" unit="Cal"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceWalkingRunning" sum="5.2" unit="km"/>
+ </Workout>
+</HealthData>"""
+
+CYCLING_DISTANCE_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+ <Workout workoutActivityType="HKWorkoutActivityTypeCycling" duration="30.0" durationUnit="min" totalDistance="10.0" totalDistanceUnit="km" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:30:00 -0700"/>
+ <Record type="HKQuantityTypeIdentifierDistanceCycling" sourceName="Apple Watch" unit="km" creationDate="2026-07-01 08:10:00 -0700" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:10:00 -0700" value="3.0"/>
+</HealthData>"""
+
+ROUTE_LINKED_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30.0" durationUnit="min" totalDistance="5.0" totalDistanceUnit="km" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:30:00 -0700">
+  <WorkoutRoute><FileReference path="/workout-routes/route_2026-07-01_8.00am.gpx"/></WorkoutRoute>
+ </Workout>
+</HealthData>"""
+
+ME_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+ <Me HKCharacteristicTypeIdentifierDateOfBirth="2000-04-02" HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexMale"/>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30.0" durationUnit="min" totalDistance="5.0" totalDistanceUnit="km" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:30:00 -0700"/>
+</HealthData>"""
+
 
 def test_apple_health_xml_produces_correct_activity(fixtures_dir):
     xml_bytes = (fixtures_dir / "sample_export.xml").read_bytes()
@@ -61,6 +88,172 @@ def test_dedup_within_one_parse_overlapping_workouts_keeps_one():
     assert len(workouts) == 1
 
 
+def test_distance_falls_back_to_workout_statistics_when_attribute_missing():
+    workouts = parser.parse_apple_health_xml(WORKOUT_STATISTICS_XML)
+
+    assert len(workouts) == 1
+    assert workouts[0]["distance_meters"] == pytest.approx(5200.0)
+
+
+def test_source_device_captured_from_workout_source_name():
+    workouts = parser.parse_apple_health_xml(WORKOUT_STATISTICS_XML)
+
+    assert workouts[0]["source_device"] == "Fernando’s Apple Watch"
+
+
+def test_cycling_distance_records_bucketed_into_stream():
+    workouts = parser.parse_apple_health_xml(CYCLING_DISTANCE_XML)
+
+    stream = workouts[0]["stream_data"]
+    assert stream["distance"] == [3000.0]
+
+
+def test_route_file_reference_captured_on_workout():
+    workouts = parser.parse_apple_health_xml(ROUTE_LINKED_XML)
+
+    assert workouts[0]["route_file"] == "workout-routes/route_2026-07-01_8.00am.gpx"
+
+
+def test_route_file_is_none_when_no_route():
+    workouts = parser.parse_apple_health_xml(DUPLICATE_WORKOUT_XML)
+
+    assert workouts[0]["route_file"] is None
+
+
+def test_collect_workout_windows_captures_me_birth_year():
+    windows, me_attrs = parser._collect_workout_windows(ME_XML)
+
+    assert me_attrs.get("birth_year") == 2000
+
+
+def test_collect_workout_windows_me_attrs_empty_when_absent():
+    windows, me_attrs = parser._collect_workout_windows(DUPLICATE_WORKOUT_XML)
+
+    assert me_attrs.get("birth_year") is None
+
+
+ROUTE_GPX_BYTES = b"""<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Apple Health Export" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lon="-81.365080" lat="28.560426"><ele>34.6</ele><time>2026-07-01T15:00:00Z</time></trkpt>
+    <trkpt lon="-81.365085" lat="28.560427"><ele>34.8</ele><time>2026-07-01T15:00:10Z</time></trkpt>
+  </trkseg></trk>
+</gpx>"""
+
+
+def test_parse_route_gpx_returns_points_relative_to_window_start():
+    window_start = datetime(2026, 7, 1, 15, 0, 0)
+
+    points = parser._parse_route_gpx(ROUTE_GPX_BYTES, window_start)
+
+    assert len(points) == 2
+    assert points[0] == {"elapsed": 0, "lat": 28.560426, "lon": -81.365080, "elevation": 34.6}
+    assert points[1]["elapsed"] == 10
+
+
+def test_bucket_records_merges_route_points_into_stream():
+    xml_bytes = b"<HealthData></HealthData>"
+    windows = [{"start_time": datetime(2026, 7, 1, 15, 0, 0), "end_time": datetime(2026, 7, 1, 15, 1, 0)}]
+    route_points_by_index = {
+        0: [
+            {"elapsed": 0, "lat": 28.56, "lon": -81.36, "elevation": 34.6},
+            {"elapsed": 10, "lat": 28.561, "lon": -81.361, "elevation": 35.0},
+        ]
+    }
+
+    streams = parser._bucket_records(xml_bytes, windows, route_points_by_index)
+
+    assert streams[0]["time"] == [0, 10]
+    assert streams[0]["lat"] == [28.56, 28.561]
+    assert streams[0]["lon"] == [-81.36, -81.361]
+    assert streams[0]["elevation"] == [34.6, 35.0]
+
+
+def _build_zip_with_route(tmp_path, name="export_with_route.zip"):
+    export_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+ <Me HKCharacteristicTypeIdentifierDateOfBirth="1995-06-15"/>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="1.0" durationUnit="min" totalDistance="1.0" totalDistanceUnit="km" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:01:00 -0700" sourceName="Test Watch">
+  <WorkoutRoute><FileReference path="/workout-routes/route_test.gpx"/></WorkoutRoute>
+ </Workout>
+</HealthData>"""
+    route_gpx = b"""<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk><trkseg>
+    <trkpt lon="-81.0" lat="28.0"><ele>10.0</ele><time>2026-07-01T15:00:00Z</time></trkpt>
+    <trkpt lon="-81.001" lat="28.001"><ele>15.0</ele><time>2026-07-01T15:00:30Z</time></trkpt>
+  </trkseg></trk>
+</gpx>"""
+    zip_path = tmp_path / name
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("apple_health_export/export.xml", export_xml)
+        zf.writestr("apple_health_export/workout-routes/route_test.gpx", route_gpx)
+    return zip_path
+
+
+def test_import_zip_captures_route_points_and_elevation_gain(tmp_path, db_session):
+    from app.models import ActivityStream
+
+    zip_path = _build_zip_with_route(tmp_path)
+
+    parser.import_apple_health_zip(zip_path, db_session)
+
+    activity = db_session.query(Activity).one()
+    stream = db_session.query(ActivityStream).filter_by(activity_id=activity.id).one()
+    assert 28.0 in stream.stream_data["lat"]
+    assert -81.0 in stream.stream_data["lon"]
+    assert activity.elevation_gain_meters == pytest.approx(5.0)
+
+
+def test_import_zip_persists_source_device(tmp_path, db_session):
+    zip_path = _build_zip_with_route(tmp_path)
+
+    parser.import_apple_health_zip(zip_path, db_session)
+
+    activity = db_session.query(Activity).one()
+    assert activity.source_device == "Test Watch"
+
+
+def test_import_zip_auto_fills_birth_year_when_unset(tmp_path, db_session):
+    from app.models import UserSettings
+
+    zip_path = _build_zip_with_route(tmp_path)
+
+    parser.import_apple_health_zip(zip_path, db_session)
+
+    settings = db_session.query(UserSettings).one()
+    assert settings.birth_year == 1995
+
+
+MULTI_DISTANCE_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+ <Workout workoutActivityType="HKWorkoutActivityTypeRunning" duration="30.0" durationUnit="min" totalDistance="5.0" totalDistanceUnit="km" startDate="2026-07-01 08:00:00 -0700" endDate="2026-07-01 08:30:00 -0700"/>
+ <Record type="HKQuantityTypeIdentifierDistanceWalkingRunning" unit="km" creationDate="2026-07-01 08:05:00 -0700" startDate="2026-07-01 08:05:00 -0700" endDate="2026-07-01 08:05:00 -0700" value="0.5"/>
+ <Record type="HKQuantityTypeIdentifierDistanceWalkingRunning" unit="km" creationDate="2026-07-01 08:10:00 -0700" startDate="2026-07-01 08:10:00 -0700" endDate="2026-07-01 08:10:00 -0700" value="0.3"/>
+ <Record type="HKQuantityTypeIdentifierDistanceWalkingRunning" unit="km" creationDate="2026-07-01 08:15:00 -0700" startDate="2026-07-01 08:15:00 -0700" endDate="2026-07-01 08:15:00 -0700" value="0.2"/>
+</HealthData>"""
+
+
+def test_apple_health_distance_records_accumulate_into_running_total():
+    workouts = parser.parse_apple_health_xml(MULTI_DISTANCE_XML)
+
+    stream = workouts[0]["stream_data"]
+    assert stream["distance"] == pytest.approx([500.0, 800.0, 1000.0])
+
+
+def test_import_zip_does_not_overwrite_existing_birth_year(tmp_path, db_session):
+    from app.models import UserSettings
+
+    db_session.add(UserSettings(birth_year=1988))
+    db_session.commit()
+    zip_path = _build_zip_with_route(tmp_path)
+
+    parser.import_apple_health_zip(zip_path, db_session)
+
+    settings = db_session.query(UserSettings).one()
+    assert settings.birth_year == 1988
+
+
 def test_dedup_across_reimports_same_zip_twice_no_duplicate_rows(fixtures_dir, db_session):
     zip_path = fixtures_dir / "sample_export.zip"
 
@@ -91,6 +284,8 @@ def test_gpx_import_creates_activity_and_stream(fixtures_dir, db_session):
     stream = db_session.query(ActivityStream).filter_by(activity_id=activity.id).one()
     assert stream.stream_data["hr"] == [140.0, 148.0, 155.0]
     assert len(stream.stream_data["time"]) == 3
+    assert stream.stream_data["lat"] == [37.7749, 37.7755, 37.7760]
+    assert stream.stream_data["lon"] == [-122.4194, -122.4190, -122.4185]
 
 
 def test_csv_import_creates_activity_without_stream(fixtures_dir, db_session):

@@ -94,7 +94,7 @@ window powered by PyWebView + Flask.
 |---|---|---|
 | id | INTEGER PK | |
 | activity_id | INTEGER FK | CASCADE DELETE |
-| stream_data | JSON | {hr: [], pace: [], elevation: [], distance: [], time: []} — `time` is the unified sorted set of elapsed-seconds offsets across all metrics; `hr`/`distance`/`elevation` are same-length arrays with `null` where that metric has no reading at that offset (Apple Health samples HR/distance independently; GPX streams have no nulls since every trackpoint carries all metrics together) |
+| stream_data | JSON | {hr: [], pace: [], elevation: [], distance: [], lat: [], lon: [], time: []} — `time` is the unified sorted set of elapsed-seconds offsets across all metrics; `hr`/`distance`/`elevation`/`lat`/`lon` are same-length arrays with `null` where that metric has no reading at that offset (Apple Health samples HR/distance independently and only has `lat`/`lon`/route-derived `elevation` for workouts with a linked GPS route file; GPX streams — both direct .gpx uploads and Apple Health route files — have no nulls since every trackpoint carries all metrics together) |
 
 ### best_efforts
 | column | type | notes |

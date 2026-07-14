@@ -148,6 +148,15 @@ def coalesce_stream_metric(times, values):
     return list(ts), list(vs)
 
 
+def elevation_gain_from_stream(times, elevations):
+    coalesced_times, coalesced_elevations = coalesce_stream_metric(times, elevations)
+    gain = 0.0
+    for prev, curr in zip(coalesced_elevations, coalesced_elevations[1:]):
+        if curr > prev:
+            gain += curr - prev
+    return gain
+
+
 def build_daily_trimp_loads(daily_totals, start_date, end_date):
     loads = []
     current = start_date

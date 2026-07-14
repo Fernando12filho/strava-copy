@@ -317,3 +317,27 @@ def test_annotate_splits_handles_uniform_pace_without_division_by_zero():
 
     assert all(s["bar_pct"] == pytest.approx(100.0) for s in annotated)
     assert all(s["is_fastest"] for s in annotated)
+
+
+# --- elevation gain from stream -------------------------------------------
+
+def test_elevation_gain_from_stream_sums_positive_deltas_only():
+    times = [0, 10, 20, 30]
+    elevations = [100.0, 105.0, 102.0, 108.0]
+
+    gain = analytics.elevation_gain_from_stream(times, elevations)
+
+    assert gain == pytest.approx(11.0)
+
+
+def test_elevation_gain_from_stream_ignores_none_values():
+    times = [0, 10, 20, 30]
+    elevations = [100.0, None, 90.0, 95.0]
+
+    gain = analytics.elevation_gain_from_stream(times, elevations)
+
+    assert gain == pytest.approx(5.0)
+
+
+def test_elevation_gain_from_stream_empty_returns_zero():
+    assert analytics.elevation_gain_from_stream([], []) == 0.0
